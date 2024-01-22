@@ -1,0 +1,2 @@
+# kegelzettelauswertung
+SG Zechin - Kegelzettelauswertung
