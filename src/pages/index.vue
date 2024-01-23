@@ -13,8 +13,6 @@ function spielerHinzufuegen() {
         neuerSpielerName.value = '';
     }
 }
-
-// TODO TIERauswertung, wer was bekommt
 </script>
 
 <template>
