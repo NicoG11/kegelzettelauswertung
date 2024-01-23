@@ -24,14 +24,12 @@ function addCanvasRef(el, index) {
 }
 
 function addFileInput(el, index) {
-    console.log('addFileInput', index, el);
     if (el) {
         fileInputRefs.value[index] = el;
     }
 }
 
 function triggerFileInput(index) {
-    console.log('triggerFileInput', index, fileInputRefs.value[index]);
     if (fileInputRefs.value[index]) {
         fileInputRefs.value[index].click();
     }
@@ -83,8 +81,6 @@ const uploadImage = (event, index) => {
 
                 canvasRefs.value[index].replaceWith(canvas);
                 canvasRefs.value[index] = canvas;
-
-                console.log('canvasRefs', canvasRefs.value[index]);
 
                 // Zurücksetzen der Auswahl und des File Inputs
                 canvasSelections.value[index] = null;
@@ -238,10 +234,8 @@ function enhanceContrast(canvas) {
 }
 
 const recognizeTextFromCanvas = async (canvas, index) => {
-    console.log('canvas', canvas, index);
     const canvasToText = canvas ? canvas : canvasRefs.value[index];
 
-    console.log('canvasToText', canvasToText);
     if (canvasToText) {
         try {
             //get image from canvas for tesseract
