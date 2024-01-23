@@ -9,6 +9,12 @@ Experimentieren mit Tesseract OCR und Tensorflow.js
 
 # Version
 
+## 0.1.0 - 2024-01-23
+
+-   Bugfixes
+-   Optical Changes
+-   New Section: "wer muss was mitnehmen"
+
 ## 0.0.1 - 2024-01-22
 
 -   Init

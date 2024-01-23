@@ -34,7 +34,7 @@ function geheZuManuelSeite(spieler) {
             <template v-slot:append>
                 <div class="d-flex flex-column ga-2">
                     <v-btn flat size="default" @click="geheZuManuelSeite(spieler)">Eingabe</v-btn>
-                    <v-btn flat size="default" @click="geheZuScannSeite(spieler)">Scannen</v-btn>
+                    <!-- <v-btn flat size="default" @click="geheZuScannSeite(spieler)">Scannen</v-btn> -->
                 </div>
             </template>
         </v-list-item>
