@@ -13,12 +13,14 @@ export const useSpielerStore = defineStore('spielerStore', {
             {bahnen: {1: [], 2: [], 3: [], 4: []}, name: 'Philipp', id: 7},
         ],
 
+        dinge: ['meiste9er', 'schlechtesteBahn', 'wenigsteRaumer', 'meisteRatten', 'letzterPlatz', 'groesteStrafe', 'zweiterPlatz', 'besterSpieler'],
+
         selectedPlayer: null,
     }),
     getters: {
         meiste9er: state => {
             const meiste9er = {
-                count: 0,
+                number: 0,
                 player: null,
                 tier: 'Froschkönig',
                 title: 'Meiste 9er',
@@ -31,7 +33,7 @@ export const useSpielerStore = defineStore('spielerStore', {
                     count += spieler.bahnen[lane].filter(score => score === 9).length;
                 }
                 if (count > meiste9er.count) {
-                    meiste9er.count = count;
+                    meiste9er.number = count;
                     meiste9er.player = spieler;
                 }
             });
@@ -46,13 +48,14 @@ export const useSpielerStore = defineStore('spielerStore', {
                 title: 'Schlechteste Bahn',
             };
 
-            let number = 0;
+            let count = 0;
             state.spielerListe.forEach(spieler => {
                 for (let lane = 1; lane <= 4; lane++) {
-                    number = 0;
-                    number = spieler.bahnen[lane].reduce((a, b) => a + b, 0);
-                    if (number > schlechtesteBahn.number) {
-                        schlechtesteBahn.number = number;
+                    count = 0;
+                    count = spieler.bahnen[lane].reduce((a, b) => a + b, 0);
+                    console.log('schlechtestebahn', count);
+                    if ((count < schlechtesteBahn.number && schlechtesteBahn.number > 0) || schlechtesteBahn.number === 0) {
+                        schlechtesteBahn.number = count;
                         schlechtesteBahn.player = spieler;
                     }
                 }
@@ -70,20 +73,20 @@ export const useSpielerStore = defineStore('spielerStore', {
 
             let sum = 0;
             state.spielerListe.forEach(spieler => {
+                sum = 0;
                 for (let lane = 1; lane <= 4; lane++) {
-                    sum = 0;
                     for (let i = 15; i < 30; i++) {
                         if (spieler.bahnen[lane][i]) {
                             sum += spieler.bahnen[lane][i] * 1;
                         }
                     }
-
-                    if (sum < wenigsteRaumer.number) {
-                        wenigsteRaumer.number = sum;
-                        wenigsteRaumer.player = spieler;
-                    }
+                }
+                if ((sum < wenigsteRaumer.number && wenigsteRaumer.number > 0) || wenigsteRaumer.number === 0) {
+                    wenigsteRaumer.number = sum;
+                    wenigsteRaumer.player = spieler;
                 }
             });
+            return wenigsteRaumer;
         },
 
         meisteRatten: state => {
@@ -120,7 +123,7 @@ export const useSpielerStore = defineStore('spielerStore', {
             state.spielerListe.forEach(spieler => {
                 number = 0;
                 for (let lane = 1; lane <= 4; lane++) {
-                    number = spieler.bahnen[lane].reduce((a, b) => a + b, 0);
+                    number += spieler.bahnen[lane].reduce((a, b) => a + b, 0);
                 }
                 if ((number < letzerPlatz.number && number > 0) || letzerPlatz.number === 0) {
                     letzerPlatz.number = number;
@@ -156,7 +159,7 @@ export const useSpielerStore = defineStore('spielerStore', {
             state.spielerListe.forEach(spieler => {
                 number = 0;
                 for (let lane = 1; lane <= 4; lane++) {
-                    number = spieler.bahnen[lane].reduce((a, b) => a + b, 0);
+                    number += spieler.bahnen[lane].reduce((a, b) => a + b, 0);
                 }
                 spielerErgebnisArray.push({number, spieler});
             });
@@ -181,7 +184,7 @@ export const useSpielerStore = defineStore('spielerStore', {
             state.spielerListe.forEach(spieler => {
                 number = 0;
                 for (let lane = 1; lane <= 4; lane++) {
-                    number = spieler.bahnen[lane].reduce((a, b) => a + b, 0);
+                    number += spieler.bahnen[lane].reduce((a, b) => a + b, 0);
                 }
                 if (number > besterSpieler.number) {
                     besterSpieler.number = number;

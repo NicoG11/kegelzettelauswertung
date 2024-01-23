@@ -36,9 +36,7 @@ function spielerHinzufuegen() {
                         </v-card-text>
                     </v-card>
                 </v-window-item>
-                <v-window-item value="dinge">
-                    <Dinge />
-                </v-window-item>
+                <v-window-item value="dinge"> <Dinge /> </v-window-item>
             </v-window>
         </v-responsive>
     </v-container>
