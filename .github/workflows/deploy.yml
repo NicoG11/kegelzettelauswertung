@@ -5,17 +5,21 @@ on:
 jobs:
     build-and-deploy:
         runs-on: ubuntu-latest
+
+        strategy:
+            matrix:
+                node-version: [18, 20]
+
         steps:
             - name: Checkout
-              uses: actions/checkout@v2
-            - name: Setup Node.js
-              uses: actions/setup-node@v2
+              uses: actions/checkout@v4
+            - name: Setup Node.js ${{ matrix.node-version }}
+              uses: actions/setup-node@v4
               with:
-                  node-version: '16' # oder eine spezifische Version wie '16.x'
-            - name: Install and Build
-              run: |
-                  npm install
-                  npm run build
+                  node-version: ${{ matrix.node-version }}
+                  cache: 'npm'
+            - run: npm install
+            - run: npm run build
             - name: Deploy
               uses: peaceiris/actions-gh-pages@v3
               with:
