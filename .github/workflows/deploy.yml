@@ -8,17 +8,14 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v2
-
             - name: Setup Node.js
               uses: actions/setup-node@v2
               with:
-                  node-version: '20' # oder eine spezifische Version wie '16.x'
-
+                  node-version: '16' # oder eine spezifische Version wie '16.x'
             - name: Install and Build
               run: |
                   npm install
                   npm run build
-
             - name: Deploy
               uses: peaceiris/actions-gh-pages@v3
               with:
