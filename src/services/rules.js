@@ -8,7 +8,7 @@ export function germanCurrencyFormat(number = null, currency = {id: 1, name: 'Eu
 
 export function calculateFines(throws) {
     const rules = {
-        '0InVolle': {count: 0, cost: 2, total: 0, name: 'Fehlwurf in den Vollen'},
+        '0InVolle': {count: 0, cost: 2, total: 0, name: '0 aufs volle Bild'},
         '1InVolle': {count: 0, cost: 1, total: 0, name: '1 aufs volle Bild'},
         '2InVolle': {count: 0, cost: 0.5, total: 0, name: '2 aufs volle Bild'},
         '0InAbraumen': {count: 0, cost: 0.2, total: 0, name: 'Fehlwurf im Abräumen'},
@@ -26,6 +26,7 @@ export function calculateFines(throws) {
     let totalAbraumen = 0;
 
     let pinsLeft = 9;
+    let vorletzterWurf = 0;
 
     if (throws?.length > 0) {
         throws.forEach((throwNumber, index) => {
@@ -39,7 +40,18 @@ export function calculateFines(throws) {
                 // Abräumen
                 totalAbraumen += throwNumber;
 
-                if (throwNumber === 0) rules['0InAbraumen'].count++;
+                //Fehlwurf in Abräumen aber Volles bild
+                if (pinsLeft === 9 && throwNumber === 0) rules['0InVolle'].count++;
+                if (pinsLeft === 9 && throwNumber === 1) rules['1InVolle'].count++;
+                if (pinsLeft === 9 && throwNumber === 2) rules['2InVolle'].count++;
+                // wenn der vorletze wurf eine 0 wa run dder jetzige wurdf eine 9 ist dann  rules['0InVolle'].count--;
+                vorletzterWurf = throws[index - 1];
+                if (vorletzterWurf === 0 && pinsLeft === 9 && throwNumber === 9) rules['0InVolle'].count--;
+                if (vorletzterWurf === 1 && pinsLeft === 8 && throwNumber === 8) rules['1InVolle'].count--;
+                if (vorletzterWurf === 2 && pinsLeft === 7 && throwNumber === 7) rules['2InVolle'].count--;
+
+                // Fehlwurf im Abräumen
+                if (throwNumber === 0 && pinsLeft < 9) rules['0InAbraumen'].count++;
 
                 // Bild geräumt Regel
 
