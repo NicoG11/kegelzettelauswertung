@@ -62,6 +62,32 @@ const uploadImage = (event, index) => {
                     }
                 }
 
+                // Berechnen des Seitenverhältnisses des Bildes
+                const ratio = width / height;
+
+                if (width > MAX_WIDTH || height > MAX_HEIGHT) {
+                    if (width / height > MAX_WIDTH / MAX_HEIGHT) {
+                        // Breite ist der begrenzende Faktor
+                        height = Math.round(MAX_WIDTH / ratio);
+                        width = MAX_WIDTH;
+                    } else {
+                        // Höhe ist der begrenzende Faktor
+                        width = Math.round(MAX_HEIGHT * ratio);
+                        height = MAX_HEIGHT;
+                    }
+                }
+
+                /*
+				// Berechnen des Skalierungsverhältnisses
+const scaleRatio = Math.min(MAX_WIDTH / width, MAX_HEIGHT / height);
+
+// Skalieren der Breite und Höhe, falls notwendig
+if (scaleRatio < 1) {
+    width = Math.round(width * scaleRatio);
+    height = Math.round(height * scaleRatio);
+}
+*/
+
                 const canvas = canvasRefs.value[index];
                 const ctx = canvas.getContext('2d');
                 canvas.width = width;
@@ -239,7 +265,7 @@ const recognizeTextFromCanvas = async (canvas, index) => {
     if (canvasToText) {
         try {
             //get image from canvas for tesseract
-            enhanceContrast(canvasToText);
+            // enhanceContrast(canvasToText);
 
             const image = canvasToText.toDataURL();
             // console.log(image);

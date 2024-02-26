@@ -46,6 +46,25 @@ export const useSpielerStore = defineStore('spielerStore', {
             }
         },
 
+        is600(spieler) {
+            const currentPlayer = this.spielerListe.find(s => s.id === spieler.id);
+            let sum = 0;
+            if (currentPlayer) {
+                for (let lane = 1; lane <= 4; lane++) {
+                    if (currentPlayer.bahnen[lane].length <= 0) {
+                        sum += 0;
+                    } else {
+                        for (let i = 0; i < 30; i++) {
+                            if (currentPlayer.bahnen[lane][i]) {
+                                sum += currentPlayer.bahnen[lane][i] * 1;
+                            }
+                        }
+                    }
+                }
+            }
+            return sum >= 600;
+        },
+
         getSum(lane, what = 'volle') {
             if (what === 'volle') {
                 return this.getSumVolle(lane);
