@@ -30,7 +30,7 @@ function geheZuManuelSeite(spieler) {
                 <br />
                 =
                 <span class="text-subtitle-2 pr-2" :class="{'text-decoration-line-through': spielerStore.is600(spieler)}">{{ spielerStore.getGesamtToPay(spieler) }} </span>
-                <span v-if="spielerStore.is600(spieler)"> mehr/gleich als 600er gespielt</span>
+                <span v-if="spielerStore.is600(spieler)"> 600er gespielt</span>
             </v-list-item-subtitle>
 
             <template v-slot:append>
