@@ -199,7 +199,7 @@ onMounted(() => {
                 <v-stepper-actions :disabled="disabled" color="green" @click:prev="prev" @click:next="next" next-text="weiter" prev-text="zurück"></v-stepper-actions>
             </template>
         </v-stepper>
-        <video ref="videoElement" autoplay></video>
+        <!-- <video ref="videoElement" autoplay></video> -->
     </v-container>
 </template>
 
