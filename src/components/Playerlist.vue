@@ -21,7 +21,7 @@ function geheZuSeite(spieler, path) {
             <v-list-item-title>{{ spieler.name }}</v-list-item-title>
             <v-list-item-subtitle>
                 <span class="text-caption" :class="{'text-decoration-line-through': spielerStore.is600(spieler)}">Zu zahlen: {{ spielerStore.getToPay(spieler, true) }}</span>
-                <span v-if="spielerStore.is600(spieler)"> mehr/gleich als 600er gespielt</span>
+                <span v-if="spielerStore.is600(spieler)"> >= 600 gespielt</span>
                 <br />
                 <span class="text-caption">+ anderen {{ spielerStore.getFineFromOtherPlayers(spieler, true) }}</span>
                 <br />
