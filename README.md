@@ -1,4 +1,4 @@
-## ![workflow](https://github.com/NicoG11/kegelzettelauswertung/actions/workflows/static.yml/badge.svg)
+## ![workflow](https://github.com/NicoG11/kegelzettelauswertung/actions/workflows/static.yml/badge.svg?branch=gh_page)
 
 TODO to install tesseract tfjs and opencv
 
