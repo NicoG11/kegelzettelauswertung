@@ -5,16 +5,29 @@
  */
 
 // Plugins
-import { registerPlugins } from '@/plugins'
+import {registerPlugins} from '@/plugins';
 
 // Components
-import App from './App.vue'
+import App from './App.vue';
 
 // Composables
-import { createApp } from 'vue'
+import {createApp} from 'vue';
 
-const app = createApp(App)
+import * as tf from '@tensorflow/tfjs';
+import '@tensorflow/tfjs-backend-webgl';
 
-registerPlugins(app)
+async function init() {
+    await tf.ready();
+    await tf.setBackend('webgl');
+    console.log('TensorFlow.js initialized with backend:', tf.getBackend());
 
-app.mount('#app')
+    const app = createApp(App);
+    registerPlugins(app);
+    app.mount('#app');
+}
+
+init();
+
+// const app = createApp(App);
+// registerPlugins(app);
+// app.mount('#app');

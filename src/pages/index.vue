@@ -1,5 +1,5 @@
 <script setup>
-import {useSpielerStore} from '@/store/spielerStore';
+import {useSpielerStore} from '@/stores/spielerStore';
 import {ref} from 'vue';
 
 const spielerStore = useSpielerStore();

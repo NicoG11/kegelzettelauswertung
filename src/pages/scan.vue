@@ -1,6 +1,6 @@
 <script setup>
-import {useSpielerStore} from '@/store/spielerStore';
-import {useAppStore} from '@/store/appStore';
+import {useSpielerStore} from '@/stores/spielerStore';
+import {useAppStore} from '@/stores/appStore';
 import {ref, computed, onMounted} from 'vue';
 import {watch} from 'vue';
 import Tesseract, {PSM} from 'tesseract.js';
@@ -265,7 +265,7 @@ const recognizeTextFromCanvas = async (canvas, index) => {
     if (canvasToText) {
         try {
             //get image from canvas for tesseract
-            // enhanceContrast(canvasToText);
+            enhanceContrast(canvasToText);
 
             const image = canvasToText.toDataURL();
             // console.log(image);

@@ -1,4 +1,5 @@
 <script setup>
+import ImageUploadModal from '@/components/ImageUploadModal.vue';
 import {calculateFines, germanCurrencyFormat, getBahnGesamtSumme} from '@/services/rules';
 import {useSpielerStore} from '@/stores/spielerStore';
 
@@ -16,6 +17,19 @@ const dialog = ref(false);
 const newValue = ref('');
 const currentLane = ref(null);
 const currentIndex = ref(null);
+
+const showFileUploadModal = ref(false);
+
+const openFileUploadModal = index => {
+    currentLane.value = index;
+    console.log('currentLane', currentLane.value);
+    showFileUploadModal.value = true;
+};
+
+const onNumbersExtracted = numbers => {
+    console.log('Extrahierte Zahlen:', numbers);
+    // Hier können Sie die extrahierten Zahlen weiterverarbeiten
+};
 
 const disabled = computed(() => {
     return aktuellerSchritt.value === 1 ? 'prev' : aktuellerSchritt.value === 5 ? 'next' : undefined;
@@ -56,12 +70,6 @@ const saveNewValue = () => {
         alert('Bitte geben Sie einen Wert zwischen 0 und 9 ein');
     }
 };
-
-const rules = {
-    min: value => value > -1 || 'Min 0',
-    max: value => value < 10 || 'Max 9',
-    number: value => !isNaN(value) || 'Must be a number',
-};
 </script>
 
 <template>
@@ -69,7 +77,7 @@ const rules = {
         <v-card>
             <v-card-title>Wurf {{ currentIndex + 1 }}</v-card-title>
             <v-card-text>
-                <v-text-field v-model="newValue" label="Neuer Wert" type="number" autofocus variant="outlined" :rules="[rules.number, rules.min, rules.max]"></v-text-field>
+                <v-text-field v-model="newValue" label="Neuer Wert" type="number" autofocus></v-text-field>
             </v-card-text>
             <v-card-actions>
                 <v-spacer></v-spacer>
@@ -78,6 +86,8 @@ const rules = {
             </v-card-actions>
         </v-card>
     </v-dialog>
+
+    <ImageUploadModal v-model="showFileUploadModal" @numbersExtracted="onNumbersExtracted" :lane="currentLane" />
 
     <v-container class="fill-height">
         <v-row class="mb-4">
@@ -115,6 +125,7 @@ const rules = {
                                         <div class="d-flex flex-column ga-4">
                                             <v-btn color="error" @click="spielerStore.clearLastScore(n)">Letzten Wurf<br />löschen</v-btn>
                                             <v-btn color="error" @click="spielerStore.clearLane(n)">Bahn {{ n }}<br />löschen</v-btn>
+                                            <v-btn @click="openFileUploadModal(n)">Bild hochladen</v-btn>
                                         </div>
                                     </v-col>
                                     <v-col cols="5" class="px-0">

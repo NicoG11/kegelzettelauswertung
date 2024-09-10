@@ -1,42 +1,43 @@
 <script setup>
-import {useSpielerStore} from '@/store/spielerStore';
+import {useSpielerStore} from '@/stores/spielerStore';
 import {useRouter} from 'vue-router';
 
 const spielerStore = useSpielerStore();
 
 const router = useRouter();
 
-function geheZuScannSeite(spieler) {
+function geheZuSeite(spieler, path) {
     spielerStore.setSelectedPlayer(spieler);
-    router.push({path: '/scan'});
-}
 
-function geheZuManuelSeite(spieler) {
-    spielerStore.setSelectedPlayer(spieler);
-    router.push({path: '/eingabe'});
+    router.push({path: path});
 }
 </script>
 
 <template>
-    <v-list lines="three" rounded border variant="elevated" class="pb-0 my-4 bg-green">
+    <v-list lines="three" rounded variant="elevated" class="pb-0 my-4 bg-green">
         <v-list-subheader color="white" class="text-h6">Spielerliste</v-list-subheader>
 
         <v-list-item :elevation="2" v-for="(spieler, index) in spielerStore.spielerListe" :key="index" class="py-3">
             <v-list-item-title>{{ spieler.name }}</v-list-item-title>
             <v-list-item-subtitle>
-                <span class="text-caption">Zu zahlen: {{ spielerStore.getToPay(spieler, true) }}</span>
+                <span class="text-caption" :class="{'text-decoration-line-through': spielerStore.is600(spieler)}">Zu zahlen: {{ spielerStore.getToPay(spieler, true) }}</span>
+                <span v-if="spielerStore.is600(spieler)"> mehr/gleich als 600er gespielt</span>
                 <br />
                 <span class="text-caption">+ anderen {{ spielerStore.getFineFromOtherPlayers(spieler, true) }}</span>
                 <br />
                 =
-                <span class="text-subtitle-2 pr-2" :class="{'text-decoration-line-through': spielerStore.is600(spieler)}">{{ spielerStore.getGesamtToPay(spieler) }} </span>
-                <span v-if="spielerStore.is600(spieler)"> mehr/gleich als 600er gespielt</span>
+                <span v-if="spielerStore.is600(spieler)">{{ spielerStore.getFineFromOtherPlayers(spieler, true, true) }}</span>
+                <span v-else class="text-subtitle-2 pr-2">{{ spielerStore.getGesamtToPay(spieler) }} </span>
             </v-list-item-subtitle>
 
             <template v-slot:append>
                 <div class="d-flex flex-column ga-2">
-                    <v-btn flat size="default" @click="geheZuManuelSeite(spieler)">Eingabe</v-btn>
-                    <v-btn flat size="default" @click="geheZuScannSeite(spieler)">Scannen</v-btn>
+                    <v-btn flat size="default" @click="geheZuSeite(spieler, 'eingabe')">Eingabe</v-btn>
+                    <!-- <v-btn flat size="default" @click="geheZuSeite(spieler, 'scan')">Scannen</v-btn>
+                    <v-btn flat size="default" @click="geheZuSeite(spieler, 'train')">Train</v-btn>
+                    <v-btn flat size="default" @click="geheZuSeite(spieler, 'train_2')">Train2</v-btn>
+                    <v-btn flat size="default" @click="geheZuSeite(spieler, 'scan2_h_erkennen')">scan H</v-btn>
+                    <v-btn flat size="default" @click="geheZuSeite(spieler, 'UploadImage')">mit Upload</v-btn> -->
                 </div>
             </template>
         </v-list-item>
