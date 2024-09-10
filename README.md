@@ -1,3 +1,5 @@
+## ![workflow](https://github.com/NicoG11/kegelzettelauswertung/actions/workflows/static.yml/badge.svg)
+
 TODO to install tesseract tfjs and opencv
 
 "@techstark/opencv-js": "^4.9.0-release.3",
