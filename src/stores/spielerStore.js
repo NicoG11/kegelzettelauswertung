@@ -1,6 +1,7 @@
 import {calculateFines, germanCurrencyFormat, getBahnGesamtSumme} from '@/services/rules';
 import {defineStore} from 'pinia';
 
+// deckelung bei welcher summe
 const MaxToPay = 15;
 
 export const useSpielerStore = defineStore('spielerStore', {
