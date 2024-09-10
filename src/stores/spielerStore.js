@@ -325,7 +325,7 @@ export const useSpielerStore = defineStore('spielerStore', {
             this.spielerListe.forEach(spieler => {
                 number = 0;
                 for (let lane = 1; lane <= 4; lane++) {
-                    number += spieler.bahnen[lane].reduce((a, b) => a + b, 0);
+                    number += spieler.bahnen[lane].reduce((a, b) => Number(a) + Number(b), 0);
                 }
                 if ((number > 0 && number < letzerPlatz.number) || letzerPlatz.number === 0) {
                     letzerPlatz.number = number;
@@ -460,7 +460,7 @@ export const useSpielerStore = defineStore('spielerStore', {
             this.spielerListe.forEach(spieler => {
                 for (let lane = 1; lane <= 4; lane++) {
                     count = 0;
-                    count = spieler.bahnen[lane].reduce((a, b) => a + b, 0);
+                    count = spieler.bahnen[lane].reduce((a, b) => Number(a) + Number(b), 0);
 
                     if ((count > 0 && count < schlechtesteBahn.number && schlechtesteBahn.number > 0) || schlechtesteBahn.number === 0) {
                         schlechtesteBahn.number = count;
@@ -501,7 +501,7 @@ export const useSpielerStore = defineStore('spielerStore', {
             this.spielerListe.forEach(spieler => {
                 count = 0;
                 for (let lane = 1; lane <= 4; lane++) {
-                    count += spieler.bahnen[lane].reduce((a, b) => a + b, 0);
+                    count += spieler.bahnen[lane].reduce((a, b) => Number(a) + Number(b), 0);
                 }
                 spielerErgebnisArray.push({number: count, spieler});
             });
@@ -632,7 +632,7 @@ export const useSpielerStore = defineStore('spielerStore', {
             this.spielerListe.forEach(spieler => {
                 number = 0;
                 for (let lane = 1; lane <= 4; lane++) {
-                    number += spieler.bahnen[lane].reduce((a, b) => a + b, 0);
+                    number += spieler.bahnen[lane].reduce((a, b) => Number(a) + Number(b), 0);
                 }
                 if (number > besterSpieler.number) {
                     besterSpieler.number = number;
