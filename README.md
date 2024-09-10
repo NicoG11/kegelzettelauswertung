@@ -1,20 +1,12 @@
-# kegelzettelauswertung
+TODO to install tesseract tfjs and opencv
 
-SG Zechin - Kegelzettelauswertung
-Um das Leben unseres Kassenwartes zu erleichtern, werde ich eine WEb-App erstellen, die die Kegelzettel auswertet und die Ergebnisse präsentiert.
-
-Erstmal nur eine manuelle Eingabe der Ergebnisse, später dann eine automatische Auswertung der Kegelzettel.
-
-Experimentieren mit Tesseract OCR und Tensorflow.js
-
-# Version
-
-## 0.1.0 - 2024-01-23
-
--   Bugfixes
--   Optical Changes
--   New Section: "wer muss was mitnehmen"
-
-## 0.0.1 - 2024-01-22
-
--   Init
+"@techstark/opencv-js": "^4.9.0-release.3",
+"@tensorflow-models/coco-ssd": "^2.2.3",
+"@tensorflow/tfjs": "^4.20.0",
+"@tensorflow/tfjs-backend-webgl": "^4.20.0",
+"@tensorflow/tfjs-core": "^4.20.0",
+"@tensorflow/tfjs-data": "^4.20.0",
+"@tensorflow/tfjs-layers": "^4.20.0",
+"core-js": "^3.37.1",
+"roboto-fontface": "^0.10.0",
+"tesseract.js": "^5.1.0",

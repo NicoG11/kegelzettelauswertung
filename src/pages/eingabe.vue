@@ -1,6 +1,6 @@
 <script setup>
 import {calculateFines, germanCurrencyFormat, getBahnGesamtSumme} from '@/services/rules';
-import {useSpielerStore} from '@/store/spielerStore';
+import {useSpielerStore} from '@/stores/spielerStore';
 
 import {computed, onMounted, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
@@ -11,6 +11,11 @@ const spielerStore = useSpielerStore();
 
 const aktuellerSchritt = ref(1);
 const anzahlBahnen = ref(4);
+
+const dialog = ref(false);
+const newValue = ref('');
+const currentLane = ref(null);
+const currentIndex = ref(null);
 
 const disabled = computed(() => {
     return aktuellerSchritt.value === 1 ? 'prev' : aktuellerSchritt.value === 5 ? 'next' : undefined;
@@ -23,22 +28,52 @@ watch(aktuellerSchritt, async (newValue, oldValue) => {
     }
 });
 
-// const weiterZumNaechstenSchritt = async () => {
-//     if (aktuellerSchritt.value < 5) {
-//         aktuellerSchritt.value++;
-//     }
-// };
-
 onMounted(() => {
     if (!spielerStore.selectedPlayer) {
         //r redirect to startpage
         router.push({path: '/'});
     }
 });
+
+const changeInputValue = (lane, index) => {
+    currentLane.value = lane;
+    currentIndex.value = index;
+    newValue.value = spielerStore.selectedPlayer?.bahnen[lane][index] || '';
+    dialog.value = true;
+};
+const saveNewValue = () => {
+    //check if value existst and valu ein range of 0-9
+    if (newValue.value && newValue.value >= 0 && newValue.value <= 9) {
+        spielerStore.changeScore(currentLane.value, currentIndex.value, newValue.value);
+        dialog.value = false;
+    } else {
+        alert('Bitte geben Sie einen Wert zwischen 0 und 9 ein');
+    }
+};
+
+const rules = {
+    min: value => value > -1 || 'Min 0',
+    max: value => value < 10 || 'Max 9',
+    number: value => !isNaN(value) || 'Must be a number',
+};
 </script>
 
 <template>
-    <v-container class="fill-height">
+    <v-dialog v-model="dialog" max-width="300px">
+        <v-card>
+            <v-card-title>Wurf {{ currentIndex + 1 }}</v-card-title>
+            <v-card-text>
+                <v-text-field v-model="newValue" label="Neuer Wert" type="number" autofocus variant="outlined" :rules="[rules.number, rules.min, rules.max]"></v-text-field>
+            </v-card-text>
+            <v-card-actions>
+                <v-spacer></v-spacer>
+                <v-btn color="blue darken-1" text @click="dialog = false">Abbrechen</v-btn>
+                <v-btn color="blue darken-1" text @click="saveNewValue">Speichern</v-btn>
+            </v-card-actions>
+        </v-card>
+    </v-dialog>
+
+    <v-container class="">
         <v-row class="mb-4">
             <v-col cols="2">
                 <v-btn @click="$router.push({path: '/'})">Zurück</v-btn>
@@ -54,9 +89,7 @@ onMounted(() => {
                     <!-- Dynamische Schritte basierend auf dem Zetteltyp -->
                     <template v-for="n in anzahlBahnen" :key="`bahn-${n}`">
                         <v-stepper-item :complete="aktuellerSchritt > n && spielerStore.selectedPlayer?.bahnen[n].length == 30" editable :title="`Bahn ${n}`" :value="n"></v-stepper-item>
-                        <!-- <v-divider v-if="n !== anzahlBahnen"></v-divider> -->
                     </template>
-                    <!-- <v-divider></v-divider> -->
                     <v-stepper-item :complete="aktuellerSchritt > anzahlBahnen" editable title="Berechnung" :value="anzahlBahnen + 1"></v-stepper-item>
                 </v-stepper-header>
 
@@ -81,9 +114,9 @@ onMounted(() => {
                                             <thead>
                                                 <tr>
                                                     <th class="text-right px-1 text-caption">W</th>
-                                                    <th class="text-center px-1 text-subtitle-2">V</th>
+                                                    <th class="text-center px-2 text-subtitle-2">V</th>
                                                     <th class="text-right px-1 text-caption">W</th>
-                                                    <th class="text-center px-1 text-subtitle-2">A</th>
+                                                    <th class="text-center px-2 text-subtitle-2">A</th>
                                                 </tr>
                                             </thead>
                                             <tfoot>
@@ -97,9 +130,11 @@ onMounted(() => {
                                             <tbody>
                                                 <tr v-for="(wurf, index) in 15" :key="`volle-${wurf.index}`">
                                                     <td class="text-right px-1 text-caption">{{ wurf }}</td>
-                                                    <td class="text-center px-1 text-subtitle-2">{{ spielerStore.selectedPlayer?.bahnen[n].length >= wurf ? spielerStore.selectedPlayer?.bahnen[n][index] : '' }}</td>
+                                                    <td class="text-center px-1 text-subtitle-2" @click="changeInputValue(n, index)">
+                                                        {{ spielerStore.selectedPlayer?.bahnen[n].length >= wurf ? spielerStore.selectedPlayer?.bahnen[n][index] : '' }}
+                                                    </td>
                                                     <td class="text-right px-1 text-caption">{{ wurf + 15 }}</td>
-                                                    <td class="text-center px-1 text-subtitle-2">
+                                                    <td class="text-center px-1 text-subtitle-2" @click="changeInputValue(n, index + 15)">
                                                         {{ spielerStore.selectedPlayer?.bahnen[n].length >= wurf + 15 ? spielerStore.selectedPlayer?.bahnen[n][index + 15] : '' }}
                                                     </td>
                                                 </tr>
@@ -199,7 +234,6 @@ onMounted(() => {
                 <v-stepper-actions :disabled="disabled" color="green" @click:prev="prev" @click:next="next" next-text="weiter" prev-text="zurück"></v-stepper-actions>
             </template>
         </v-stepper>
-        <!-- <video ref="videoElement" autoplay></video> -->
     </v-container>
 </template>
 
@@ -219,7 +253,10 @@ table tfoot tr td {
 table.auswertung tr td {
     border-bottom: 1px solid rgba(0, 0, 0, 0.12);
 }
-.v-expansion-panel-text >>> .v-expansion-panel-text__wrapper {
+.v-expansion-panel-text > .v-expansion-panel-text__wrapper {
     padding: 0 !important;
+}
+.text-subtitle-2 {
+    line-height: normal;
 }
 </style>

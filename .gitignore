@@ -1,4 +1,16 @@
-# Logs
+.DS_Store
+/dist
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Log files
 logs
 *.log
 npm-debug.log*
@@ -6,6 +18,9 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+pnpm-debug.log*
+
+
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
@@ -39,6 +54,7 @@ bower_components
 build/Release
 
 # Dependency directories
+node_modules
 node_modules/
 jspm_packages/
 
@@ -78,6 +94,7 @@ web_modules/
 .env.test.local
 .env.production.local
 .env.local
+.env.*.local
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -128,3 +145,4 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+

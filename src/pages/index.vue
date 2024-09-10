@@ -1,5 +1,5 @@
 <script setup>
-import {useSpielerStore} from '@/store/spielerStore';
+import {useSpielerStore} from '@/stores/spielerStore';
 import {ref} from 'vue';
 
 const spielerStore = useSpielerStore();
@@ -34,7 +34,9 @@ function spielerHinzufuegen() {
                         </v-card-text>
                     </v-card>
                 </v-window-item>
-                <v-window-item value="dinge"> <Dinge /> </v-window-item>
+                <v-window-item value="dinge">
+                    <Dinge />
+                </v-window-item>
             </v-window>
         </v-responsive>
     </v-container>
