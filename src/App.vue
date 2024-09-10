@@ -36,7 +36,6 @@ function navigateTo(link) {
 }
 
 const menu = [
-    {title: 'Training', link: 'train'},
     {title: 'Changelog', link: 'changelog'},
     {title: 'Impressum', link: 'impressum'},
 ];

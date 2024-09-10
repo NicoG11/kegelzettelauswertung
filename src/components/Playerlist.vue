@@ -33,11 +33,6 @@ function geheZuSeite(spieler, path) {
             <template v-slot:append>
                 <div class="d-flex flex-column ga-2">
                     <v-btn flat size="default" @click="geheZuSeite(spieler, 'eingabe')">Eingabe</v-btn>
-                    <!-- <v-btn flat size="default" @click="geheZuSeite(spieler, 'scan')">Scannen</v-btn>
-                    <v-btn flat size="default" @click="geheZuSeite(spieler, 'train')">Train</v-btn>
-                    <v-btn flat size="default" @click="geheZuSeite(spieler, 'train_2')">Train2</v-btn>
-                    <v-btn flat size="default" @click="geheZuSeite(spieler, 'scan2_h_erkennen')">scan H</v-btn>
-                    <v-btn flat size="default" @click="geheZuSeite(spieler, 'UploadImage')">mit Upload</v-btn> -->
                 </div>
             </template>
         </v-list-item>

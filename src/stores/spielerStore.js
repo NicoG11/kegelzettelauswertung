@@ -17,7 +17,7 @@ export const useSpielerStore = defineStore('spielerStore', {
             {bahnen: {1: [], 2: [], 3: [], 4: []}, name: 'Lucas', id: 8},
         ],
 
-        dinge: ['besterSpieler'], //['besterSpieler', 'meiste9er', 'zweiterPlatz', 'schlechtesteBahn', 'wenigsteRaumer', 'meisteRatten', 'letzterPlatz', 'groesteStrafe'],
+        dinge: ['besterSpieler', 'meiste9er', 'zweiterPlatz', 'schlechtesteBahn', 'wenigsteRaumer', 'meisteRatten', 'letzterPlatz', 'groesteStrafe'],
 
         selectedPlayer: null,
     }),
@@ -242,225 +242,14 @@ export const useSpielerStore = defineStore('spielerStore', {
                 sum += this.getToPay(player);
                 sum += this.getFineFromOtherPlayers(player);
             }
+
             if (sum > MaxToPay) {
                 sum = MaxToPay;
             }
             if (withCurrency) {
-                return germanCurrencyFormat(sum);
+                return `${germanCurrencyFormat(sum)} ${sum === MaxToPay ? ' - Höchstbetrag' : ''}`;
             }
             return sum;
-        },
-
-        meiste9er() {
-            const meiste9er = {
-                number: 0,
-                player: null,
-                tier: 'Froschkönig',
-                title: 'Meiste 9er',
-            };
-
-            let count = 0;
-            this.spielerListe.forEach(spieler => {
-                count = 0;
-                for (let lane = 1; lane <= 4; lane++) {
-                    count += spieler.bahnen[lane].filter(score => score === 9).length;
-                }
-                if (count > meiste9er.number) {
-                    meiste9er.number = count;
-                    meiste9er.player = spieler;
-                } else if (count === meiste9er.number) {
-                    //check wer hat mehr gespielt
-                    const playerSum = this.getPlayerSum(spieler);
-                    const meiste9erSum = this.getPlayerSum(meiste9er.player);
-                    if (playerSum > meiste9erSum) {
-                        meiste9er.number = count;
-                        meiste9er.player = spieler;
-                    } else if (playerSum === meiste9erSum) {
-                        //check wer hat mehr abgeräumt
-                        const playerAbrSum = this.getPlayerAbrSum(spieler);
-                        const meiste9erAbrSum = this.getPlayerAbrSum(meiste9er.player);
-                        if (playerAbrSum > meiste9erAbrSum) {
-                            meiste9er.number = count;
-                            meiste9er.player = spieler;
-                        }
-                    }
-                }
-            });
-            return meiste9er;
-        },
-
-        schlechtesteBahn() {
-            const schlechtesteBahn = {
-                number: 0,
-                player: null,
-                tier: 'Löwe',
-                title: 'Schlechteste Bahn',
-            };
-
-            let count = 0;
-            this.spielerListe.forEach(spieler => {
-                for (let lane = 1; lane <= 4; lane++) {
-                    count = 0;
-                    count = spieler.bahnen[lane].reduce((a, b) => a + b, 0);
-
-                    if ((count > 0 && count < schlechtesteBahn.number && schlechtesteBahn.number > 0) || schlechtesteBahn.number === 0) {
-                        schlechtesteBahn.number = count;
-                        schlechtesteBahn.player = spieler;
-                    } else if (count === schlechtesteBahn.number) {
-                        //check wer hat mehr gespielt
-                        const playerSum = this.getPlayerSum(spieler);
-                        const schlechtesteBahnSum = this.getPlayerSum(schlechtesteBahn.player);
-                        if (playerSum < schlechtesteBahnSum) {
-                            schlechtesteBahn.number = count;
-                            schlechtesteBahn.player = spieler;
-                        } else if (playerSum === schlechtesteBahnSum) {
-                            //check wer hat mehr abgeräumt
-                            const playerAbrSum = this.getPlayerAbrSum(spieler);
-                            const schlechtesteBahnAbrSum = this.getPlayerAbrSum(schlechtesteBahn.player);
-                            if (playerAbrSum < schlechtesteBahnAbrSum) {
-                                schlechtesteBahn.number = count;
-                                schlechtesteBahn.player = spieler;
-                            }
-                        }
-                    }
-                }
-            });
-            return schlechtesteBahn;
-        },
-
-        wenigsteRaumer() {
-            const wenigsteRaumer = {
-                number: 0,
-                player: null,
-                tier: 'Krokodil',
-                title: 'Wenigste Raumer',
-            };
-
-            let sum = 0;
-            this.spielerListe.forEach(spieler => {
-                sum = 0;
-                for (let lane = 1; lane <= 4; lane++) {
-                    for (let i = 15; i < 30; i++) {
-                        if (spieler.bahnen[lane][i]) {
-                            sum += spieler.bahnen[lane][i] * 1;
-                        }
-                    }
-                }
-                if ((sum > 0 && sum < wenigsteRaumer.number && wenigsteRaumer.number > 0) || wenigsteRaumer.number === 0) {
-                    wenigsteRaumer.number = sum;
-                    wenigsteRaumer.player = spieler;
-                } else if (sum === wenigsteRaumer.number) {
-                    //check wer hat mehr gespielt
-                    const playerSum = this.getPlayerSum(spieler);
-                    const wenigsteRaumerSum = this.getPlayerSum(wenigsteRaumer.player);
-                    if (playerSum < wenigsteRaumerSum) {
-                        wenigsteRaumer.number = sum;
-                        wenigsteRaumer.player = spieler;
-                    } else if (playerSum === wenigsteRaumerSum) {
-                        //check wer hat mehr fehlwuerfe
-                        const playerFehlwurfSum = this.fehlwurfSum(spieler);
-                        const wenigsteRaumerFehlwurfSum = this.fehlwurfSum(wenigsteRaumer.player);
-                        if (playerFehlwurfSum < wenigsteRaumerFehlwurfSum) {
-                            wenigsteRaumer.number = sum;
-                            wenigsteRaumer.player = spieler;
-                        } else if (playerFehlwurfSum === wenigsteRaumerFehlwurfSum) {
-                            //check wer hat mehr volle
-                            const playerVolleSum = this.getPlayerVolleSum(spieler);
-                            const wenigsteRaumerVolleSum = this.getPlayerVolleSum(wenigsteRaumer.player);
-                            if (playerVolleSum < wenigsteRaumerVolleSum) {
-                                wenigsteRaumer.number = sum;
-                                wenigsteRaumer.player = spieler;
-                            }
-                        }
-                    }
-                }
-            });
-            return wenigsteRaumer;
-        },
-
-        meisteRatten() {
-            const meisteRatten = {
-                number: 0,
-                player: null,
-                tier: 'Ratte',
-                title: 'Meiste Ratten',
-            };
-
-            let count = 0;
-            this.spielerListe.forEach(spieler => {
-                count = 0;
-                for (let lane = 1; lane <= 4; lane++) {
-                    count += spieler.bahnen[lane].filter(score => score === 0).length;
-                }
-                if (count > meisteRatten.number) {
-                    meisteRatten.number = count;
-                    meisteRatten.player = spieler;
-                } else if (count === meisteRatten.number) {
-                    //check wer hat mehr abgeraeumt
-                    const playerAbrSum = this.getPlayerAbrSum(spieler);
-                    const meisteRattenAbrSum = this.getPlayerAbrSum(meisteRatten.player);
-                    if (playerAbrSum < meisteRattenAbrSum) {
-                        meisteRatten.number = count;
-                        meisteRatten.player = spieler;
-                    } else if (playerAbrSum === meisteRattenAbrSum) {
-                        //check wer hat mehr gespielt
-                        const playerSum = this.getPlayerSum(spieler);
-                        const meisteRattenSum = this.getPlayerSum(meisteRatten.player);
-                        if (playerSum < meisteRattenSum) {
-                            meisteRatten.number = count;
-                            meisteRatten.player = spieler;
-                        }
-                    }
-                }
-            });
-            return meisteRatten;
-        },
-
-        letzterPlatz() {
-            const letzerPlatz = {
-                number: 0,
-                player: null,
-                tier: 'Großer Zonk',
-                title: 'Letzter Platz',
-            };
-
-            let number = 0;
-            this.spielerListe.forEach(spieler => {
-                number = 0;
-                for (let lane = 1; lane <= 4; lane++) {
-                    number += spieler.bahnen[lane].reduce((a, b) => a + b, 0);
-                }
-                if ((number < letzerPlatz.number && number > 0) || letzerPlatz.number === 0) {
-                    letzerPlatz.number = number;
-                    letzerPlatz.player = spieler;
-                } else if (number === letzerPlatz.number) {
-                    //check wer hat mehr abgeraeumt
-                    const playerAbrSum = this.getPlayerAbrSum(spieler);
-                    const letzerPlatzAbrSum = this.getPlayerAbrSum(letzerPlatz.player);
-                    if (playerAbrSum < letzerPlatzAbrSum) {
-                        letzerPlatz.number = number;
-                        letzerPlatz.player = spieler;
-                    } else if (playerAbrSum === letzerPlatzAbrSum) {
-                        //check wer hat weniger fehlwuerfe
-                        const playerFehlwurfSum = this.fehlwurfSum(spieler);
-                        const letzerPlatzFehlwurfSum = this.fehlwurfSum(letzerPlatz.player);
-                        if (playerFehlwurfSum < letzerPlatzFehlwurfSum) {
-                            letzerPlatz.number = number;
-                            letzerPlatz.player = spieler;
-                        } else if (playerFehlwurfSum === letzerPlatzFehlwurfSum) {
-                            //check wer hat mehr volle
-                            const playerVolleSum = this.getPlayerVolleSum(spieler);
-                            const letzerPlatzVolleSum = this.getPlayerVolleSum(letzerPlatz.player);
-                            if (playerVolleSum < letzerPlatzVolleSum) {
-                                letzerPlatz.number = number;
-                                letzerPlatz.player = spieler;
-                            }
-                        }
-                    }
-                }
-            });
-
-            return letzerPlatz;
         },
 
         groesteStrafe() {
@@ -484,14 +273,14 @@ export const useSpielerStore = defineStore('spielerStore', {
             groesteStrafe.player = spielerArray[0].spieler;
 
             // check if the first numer existst twice so we need to check who has more played
-            if (spielerArray[0].number === spielerArray[1].number) {
+            if (spielerArray[0].number > 0 && spielerArray[0].number === spielerArray[1].number) {
                 const playerSum = this.getPlayerSum(spielerArray[0].spieler);
                 const playerSum2 = this.getPlayerSum(spielerArray[1].spieler);
                 if (playerSum2 < playerSum) {
                     groesteStrafe.sum = germanCurrencyFormat(spielerArray[1].number);
                     groesteStrafe.number = spielerArray[1].number;
                     groesteStrafe.player = spielerArray[1].spieler;
-                } else if (playerSum2 === playerSum) {
+                } else if (playerSum2 > 0 && playerSum2 === playerSum) {
                     //check wer hat mehr abgeraeumt
                     const playerAbrSum = this.getPlayerAbrSum(spielerArray[0].spieler);
                     const playerAbrSum2 = this.getPlayerAbrSum(spielerArray[1].spieler);
@@ -524,6 +313,180 @@ export const useSpielerStore = defineStore('spielerStore', {
             return groesteStrafe;
         },
 
+        letzterPlatz() {
+            const letzerPlatz = {
+                number: 0,
+                player: null,
+                tier: 'Großer Zonk',
+                title: 'Letzter Platz',
+            };
+
+            let number = 0;
+            this.spielerListe.forEach(spieler => {
+                number = 0;
+                for (let lane = 1; lane <= 4; lane++) {
+                    number += spieler.bahnen[lane].reduce((a, b) => a + b, 0);
+                }
+                if ((number > 0 && number < letzerPlatz.number) || letzerPlatz.number === 0) {
+                    letzerPlatz.number = number;
+                    letzerPlatz.player = spieler;
+                } else if (number > 0 && number === letzerPlatz.number) {
+                    //check wer hat mehr abgeraeumt
+                    const playerAbrSum = this.getPlayerAbrSum(spieler);
+                    const letzerPlatzAbrSum = this.getPlayerAbrSum(letzerPlatz.player);
+                    if (playerAbrSum < letzerPlatzAbrSum) {
+                        letzerPlatz.number = number;
+                        letzerPlatz.player = spieler;
+                    } else if (playerAbrSum === letzerPlatzAbrSum) {
+                        //check wer hat weniger fehlwuerfe
+                        const playerFehlwurfSum = this.fehlwurfSum(spieler);
+                        const letzerPlatzFehlwurfSum = this.fehlwurfSum(letzerPlatz.player);
+                        if (playerFehlwurfSum < letzerPlatzFehlwurfSum) {
+                            letzerPlatz.number = number;
+                            letzerPlatz.player = spieler;
+                        } else if (playerFehlwurfSum === letzerPlatzFehlwurfSum) {
+                            //check wer hat mehr volle
+                            const playerVolleSum = this.getPlayerVolleSum(spieler);
+                            const letzerPlatzVolleSum = this.getPlayerVolleSum(letzerPlatz.player);
+                            if (playerVolleSum < letzerPlatzVolleSum) {
+                                letzerPlatz.number = number;
+                                letzerPlatz.player = spieler;
+                            }
+                        }
+                    }
+                }
+            });
+
+            return letzerPlatz;
+        },
+
+        meisteRatten() {
+            const meisteRatten = {
+                number: 0,
+                player: null,
+                tier: 'Ratte',
+                title: 'Meiste Ratten',
+            };
+
+            let count = 0;
+            this.spielerListe.forEach(spieler => {
+                count = 0;
+                for (let lane = 1; lane <= 4; lane++) {
+                    count += spieler.bahnen[lane].filter(score => score === 0).length;
+                }
+                if (count > 0 && count > meisteRatten.number) {
+                    meisteRatten.number = count;
+                    meisteRatten.player = spieler;
+                } else if (count > 0 && count === meisteRatten.number) {
+                    //check wer hat mehr abgeraeumt
+                    const playerAbrSum = this.getPlayerAbrSum(spieler);
+                    const meisteRattenAbrSum = this.getPlayerAbrSum(meisteRatten.player);
+                    if (playerAbrSum < meisteRattenAbrSum) {
+                        meisteRatten.number = count;
+                        meisteRatten.player = spieler;
+                    } else if (playerAbrSum === meisteRattenAbrSum) {
+                        //check wer hat mehr gespielt
+                        const playerSum = this.getPlayerSum(spieler);
+                        const meisteRattenSum = this.getPlayerSum(meisteRatten.player);
+                        if (playerSum < meisteRattenSum) {
+                            meisteRatten.number = count;
+                            meisteRatten.player = spieler;
+                        }
+                    }
+                }
+            });
+            return meisteRatten;
+        },
+
+        wenigsteRaumer() {
+            const wenigsteRaumer = {
+                number: 0,
+                player: null,
+                tier: 'Krokodil',
+                title: 'Wenigste Raumer',
+            };
+
+            let sum = 0;
+            this.spielerListe.forEach(spieler => {
+                sum = 0;
+                for (let lane = 1; lane <= 4; lane++) {
+                    for (let i = 15; i < 30; i++) {
+                        if (spieler.bahnen[lane][i]) {
+                            sum += spieler.bahnen[lane][i] * 1;
+                        }
+                    }
+                }
+                if ((sum > 0 && sum < wenigsteRaumer.number && wenigsteRaumer.number > 0) || wenigsteRaumer.number === 0) {
+                    wenigsteRaumer.number = sum;
+                    wenigsteRaumer.player = spieler;
+                } else if (sum > 0 && sum === wenigsteRaumer.number) {
+                    //check wer hat mehr gespielt
+                    const playerSum = this.getPlayerSum(spieler);
+                    const wenigsteRaumerSum = this.getPlayerSum(wenigsteRaumer.player);
+                    if (playerSum < wenigsteRaumerSum) {
+                        wenigsteRaumer.number = sum;
+                        wenigsteRaumer.player = spieler;
+                    } else if (playerSum === wenigsteRaumerSum) {
+                        //check wer hat mehr fehlwuerfe
+                        const playerFehlwurfSum = this.fehlwurfSum(spieler);
+                        const wenigsteRaumerFehlwurfSum = this.fehlwurfSum(wenigsteRaumer.player);
+                        if (playerFehlwurfSum < wenigsteRaumerFehlwurfSum) {
+                            wenigsteRaumer.number = sum;
+                            wenigsteRaumer.player = spieler;
+                        } else if (playerFehlwurfSum === wenigsteRaumerFehlwurfSum) {
+                            //check wer hat mehr volle
+                            const playerVolleSum = this.getPlayerVolleSum(spieler);
+                            const wenigsteRaumerVolleSum = this.getPlayerVolleSum(wenigsteRaumer.player);
+                            if (playerVolleSum < wenigsteRaumerVolleSum) {
+                                wenigsteRaumer.number = sum;
+                                wenigsteRaumer.player = spieler;
+                            }
+                        }
+                    }
+                }
+            });
+            return wenigsteRaumer;
+        },
+
+        schlechtesteBahn() {
+            const schlechtesteBahn = {
+                number: 0,
+                player: null,
+                tier: 'Löwe',
+                title: 'Schlechteste Bahn',
+            };
+
+            let count = 0;
+            this.spielerListe.forEach(spieler => {
+                for (let lane = 1; lane <= 4; lane++) {
+                    count = 0;
+                    count = spieler.bahnen[lane].reduce((a, b) => a + b, 0);
+
+                    if ((count > 0 && count < schlechtesteBahn.number && schlechtesteBahn.number > 0) || schlechtesteBahn.number === 0) {
+                        schlechtesteBahn.number = count;
+                        schlechtesteBahn.player = spieler;
+                    } else if (count > 0 && count === schlechtesteBahn.number) {
+                        //check wer hat mehr gespielt
+                        const playerSum = this.getPlayerSum(spieler);
+                        const schlechtesteBahnSum = this.getPlayerSum(schlechtesteBahn.player);
+                        if (playerSum < schlechtesteBahnSum) {
+                            schlechtesteBahn.number = count;
+                            schlechtesteBahn.player = spieler;
+                        } else if (playerSum === schlechtesteBahnSum) {
+                            //check wer hat mehr abgeräumt
+                            const playerAbrSum = this.getPlayerAbrSum(spieler);
+                            const schlechtesteBahnAbrSum = this.getPlayerAbrSum(schlechtesteBahn.player);
+                            if (playerAbrSum < schlechtesteBahnAbrSum) {
+                                schlechtesteBahn.number = count;
+                                schlechtesteBahn.player = spieler;
+                            }
+                        }
+                    }
+                }
+            });
+            return schlechtesteBahn;
+        },
+
         zweiterPlatz() {
             const zweiterPlatz = {
                 number: 0,
@@ -533,6 +496,7 @@ export const useSpielerStore = defineStore('spielerStore', {
             };
 
             const spielerErgebnisArray = [];
+
             let count = 0;
             this.spielerListe.forEach(spieler => {
                 count = 0;
@@ -542,13 +506,13 @@ export const useSpielerStore = defineStore('spielerStore', {
                 spielerErgebnisArray.push({number: count, spieler});
             });
 
-            spielerErgebnisArray.sort((a, b) => b.number - a.number);
+            spielerErgebnisArray?.sort((a, b) => b.number - a.number);
 
             zweiterPlatz.number = spielerErgebnisArray[1].number;
             zweiterPlatz.player = spielerErgebnisArray[1].spieler;
 
             //zweiter platz same as first place check if abräumer
-            if (spielerErgebnisArray[0].number === spielerErgebnisArray[1].number) {
+            if (spielerErgebnisArray[0]?.number > 0 && spielerErgebnisArray[0]?.number === spielerErgebnisArray[1]?.number) {
                 const playerAbrSum2 = this.getPlayerAbrSum(spielerErgebnisArray[1].spieler);
                 const playerAbrSum = this.getPlayerAbrSum(spielerErgebnisArray[0].spieler);
                 if (playerAbrSum < playerAbrSum2) {
@@ -571,7 +535,7 @@ export const useSpielerStore = defineStore('spielerStore', {
                         }
                     }
                 }
-            } else if (spielerErgebnisArray[1].number === spielerErgebnisArray[2].number) {
+            } else if (spielerErgebnisArray[2].number > 0 && spielerErgebnisArray[1].number === spielerErgebnisArray[2].number) {
                 // zweiter platz = dritter platz check all
                 const playerAbrSum = this.getPlayerAbrSum(spielerErgebnisArray[1].spieler);
                 const playerAbrSum2 = this.getPlayerAbrSum(spielerErgebnisArray[2].spieler);
@@ -600,6 +564,61 @@ export const useSpielerStore = defineStore('spielerStore', {
             return zweiterPlatz;
         },
 
+        meiste9er() {
+            const meiste9er = {
+                number: 0,
+                player: null,
+                tier: 'Froschkönig',
+                title: 'Meiste 9er',
+            };
+
+            let count = 0;
+            this.spielerListe.forEach(spieler => {
+                count = 0;
+                for (let lane = 1; lane <= 4; lane++) {
+                    count += spieler.bahnen[lane].filter(score => score === 9).length;
+                }
+                if (count > meiste9er.number) {
+                    meiste9er.number = count;
+                    meiste9er.player = spieler;
+                } else if (count > 0 && count === meiste9er.number) {
+                    //check wer hat mehr gespielt
+                    const playerSum = this.getPlayerSum(spieler);
+                    const meiste9erSum = this.getPlayerSum(meiste9er.player);
+
+                    if (playerSum > meiste9erSum) {
+                        meiste9er.number = count;
+                        meiste9er.player = spieler;
+                    } else if (playerSum === meiste9erSum) {
+                        //check wer hat mehr abgeräumt
+                        const playerAbrSum = this.getPlayerAbrSum(spieler);
+                        const meiste9erAbrSum = this.getPlayerAbrSum(meiste9er.player);
+                        if (playerAbrSum > meiste9erAbrSum) {
+                            meiste9er.number = count;
+                            meiste9er.player = spieler;
+                        } else if (playerAbrSum === meiste9erAbrSum) {
+                            //check wer hat weniger fehlwuerfe
+                            const playerFehlwurfSum = this.fehlwurfSum(spieler);
+                            const meiste9erFehlwurfSum = this.fehlwurfSum(meiste9er.player);
+                            if (playerFehlwurfSum < meiste9erFehlwurfSum) {
+                                meiste9er.number = count;
+                                meiste9er.player = spieler;
+                            } else if (playerFehlwurfSum === meiste9erFehlwurfSum) {
+                                //check wer hat mehr volle
+                                const playerVolleSum = this.getPlayerVolleSum(spieler);
+                                const meiste9erVolleSum = this.getPlayerVolleSum(meiste9er.player);
+                                if (playerVolleSum > meiste9erVolleSum) {
+                                    meiste9er.number = count;
+                                    meiste9er.player = spieler;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            return meiste9er;
+        },
+
         besterSpieler() {
             const besterSpieler = {
                 number: 0,
@@ -609,6 +628,7 @@ export const useSpielerStore = defineStore('spielerStore', {
             };
 
             let number = 0;
+
             this.spielerListe.forEach(spieler => {
                 number = 0;
                 for (let lane = 1; lane <= 4; lane++) {
@@ -617,7 +637,7 @@ export const useSpielerStore = defineStore('spielerStore', {
                 if (number > besterSpieler.number) {
                     besterSpieler.number = number;
                     besterSpieler.player = spieler;
-                } else if (number === besterSpieler.number) {
+                } else if (number > 0 && number === besterSpieler.number) {
                     //check wer hat mehr abgeräumt
                     const playerAbrSum = this.getPlayerAbrSum(spieler);
                     const besterSpielerAbrSum = this.getPlayerAbrSum(besterSpieler.player);

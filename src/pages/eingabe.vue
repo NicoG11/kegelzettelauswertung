@@ -28,12 +28,6 @@ watch(aktuellerSchritt, async (newValue, oldValue) => {
     }
 });
 
-// const weiterZumNaechstenSchritt = async () => {
-//     if (aktuellerSchritt.value < 5) {
-//         aktuellerSchritt.value++;
-//     }
-// };
-
 onMounted(() => {
     if (!spielerStore.selectedPlayer) {
         //r redirect to startpage
@@ -79,7 +73,7 @@ const rules = {
         </v-card>
     </v-dialog>
 
-    <v-container class="fill-height">
+    <v-container class="">
         <v-row class="mb-4">
             <v-col cols="2">
                 <v-btn @click="$router.push({path: '/'})">Zurück</v-btn>
@@ -95,9 +89,7 @@ const rules = {
                     <!-- Dynamische Schritte basierend auf dem Zetteltyp -->
                     <template v-for="n in anzahlBahnen" :key="`bahn-${n}`">
                         <v-stepper-item :complete="aktuellerSchritt > n && spielerStore.selectedPlayer?.bahnen[n].length == 30" editable :title="`Bahn ${n}`" :value="n"></v-stepper-item>
-                        <!-- <v-divider v-if="n !== anzahlBahnen"></v-divider> -->
                     </template>
-                    <!-- <v-divider></v-divider> -->
                     <v-stepper-item :complete="aktuellerSchritt > anzahlBahnen" editable title="Berechnung" :value="anzahlBahnen + 1"></v-stepper-item>
                 </v-stepper-header>
 
@@ -242,7 +234,6 @@ const rules = {
                 <v-stepper-actions :disabled="disabled" color="green" @click:prev="prev" @click:next="next" next-text="weiter" prev-text="zurück"></v-stepper-actions>
             </template>
         </v-stepper>
-        <video ref="videoElement" autoplay></video>
     </v-container>
 </template>
 
