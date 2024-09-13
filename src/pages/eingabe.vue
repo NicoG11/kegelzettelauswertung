@@ -1,9 +1,13 @@
 <script setup>
-import {calculateFines, germanCurrencyFormat, getBahnGesamtSumme} from '@/services/rules';
-import {useSpielerStore} from '@/stores/spielerStore';
+import {
+	calculateFines,
+	germanCurrencyFormat,
+	getBahnGesamtSumme,
+} from "@/services/rules";
+import { useSpielerStore } from "@/stores/spielerStore";
 
-import {computed, onMounted, ref, watch} from 'vue';
-import {useRouter} from 'vue-router';
+import { computed, onMounted, ref, watch } from "vue";
+import { useRouter } from "vue-router";
 
 const router = useRouter();
 
@@ -13,48 +17,56 @@ const aktuellerSchritt = ref(1);
 const anzahlBahnen = ref(4);
 
 const dialog = ref(false);
-const newValue = ref('');
+const newValue = ref("");
 const currentLane = ref(null);
 const currentIndex = ref(null);
 
 const disabled = computed(() => {
-    return aktuellerSchritt.value === 1 ? 'prev' : aktuellerSchritt.value === 5 ? 'next' : undefined;
+	return aktuellerSchritt.value === 1
+		? "prev"
+		: aktuellerSchritt.value === 5
+			? "next"
+			: undefined;
 });
 
 // create watch element for aktuellerSchritt
 watch(aktuellerSchritt, async (newValue, oldValue) => {
-    if (newValue === 5) {
-        //berechnen
-    }
+	if (newValue === 5) {
+		//berechnen
+	}
 });
 
 onMounted(() => {
-    if (!spielerStore.selectedPlayer) {
-        //r redirect to startpage
-        router.push({path: '/'});
-    }
+	if (!spielerStore.selectedPlayer) {
+		//r redirect to startpage
+		router.push({ path: "/" });
+	}
 });
 
 const changeInputValue = (lane, index) => {
-    currentLane.value = lane;
-    currentIndex.value = index;
-    newValue.value = spielerStore.selectedPlayer?.bahnen[lane][index] || '';
-    dialog.value = true;
+	currentLane.value = lane;
+	currentIndex.value = index;
+	newValue.value = spielerStore.selectedPlayer?.bahnen[lane][index] || "";
+	dialog.value = true;
 };
 const saveNewValue = () => {
-    //check if value existst and valu ein range of 0-9
-    if (newValue.value && newValue.value >= 0 && newValue.value <= 9) {
-        spielerStore.changeScore(currentLane.value, currentIndex.value, newValue.value);
-        dialog.value = false;
-    } else {
-        alert('Bitte geben Sie einen Wert zwischen 0 und 9 ein');
-    }
+	//check if value existst and valu ein range of 0-9
+	if (newValue.value && newValue.value >= 0 && newValue.value <= 9) {
+		spielerStore.changeScore(
+			currentLane.value,
+			currentIndex.value,
+			newValue.value,
+		);
+		dialog.value = false;
+	} else {
+		alert("Bitte geben Sie einen Wert zwischen 0 und 9 ein");
+	}
 };
 
 const rules = {
-    min: value => value > -1 || 'Min 0',
-    max: value => value < 10 || 'Max 9',
-    number: value => !isNaN(value) || 'Must be a number',
+	min: (value) => value > -1 || "Min 0",
+	max: (value) => value < 10 || "Max 9",
+	number: (value) => !isNaN(value) || "Must be a number",
 };
 </script>
 
@@ -74,10 +86,10 @@ const rules = {
     </v-dialog>
 
     <v-container class="">
+		<Teleport to="#teleport">
+			<v-btn @click="$router.push({ path: '/' })">Zurück</v-btn>
+		</Teleport>
         <v-row class="mb-4">
-            <v-col cols="2">
-                <v-btn @click="$router.push({path: '/'})">Zurück</v-btn>
-            </v-col>
             <v-col>
                 <div class="text-h5 pt-2 text-center font-weight-light">Auswertung für {{ spielerStore.selectedPlayer?.name }}</div>
             </v-col>
