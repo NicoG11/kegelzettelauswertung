@@ -1,5 +1,11 @@
 ## ![workflow](https://github.com/NicoG11/kegelzettelauswertung/actions/workflows/static.yml/badge.svg?branch=gh_page)
 
+# Kegelzettelauswertung
+- aktuelle Version: 1.1.2
+- [Demo GithubPage](https://nicog11.github.io/kegelzettelauswertung/)
+- Speichern/Laden + Import/Export
+
+
 TODO to install tesseract tfjs and opencv
 
 "@techstark/opencv-js": "^4.9.0-release.3",
