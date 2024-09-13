@@ -17,6 +17,7 @@
 							<v-list-item v-for="(item, i) in menu" :key="i">
 								<v-list-item-title @click="navigateTo(item.link)">{{ item.title }}</v-list-item-title>
 							</v-list-item>
+							<v-divider />
 							<v-list-item>
 								<v-list-item-title @click="openSaveDialog"><v-icon>mdi-content-save</v-icon>
 									Speichern</v-list-item-title>
@@ -25,7 +26,7 @@
 								<v-list-item-title @click="openLoadDialog"><v-icon>mdi-folder-open</v-icon>
 									Öffnen</v-list-item-title>
 							</v-list-item>
-
+							<v-divider />
 							<v-list-item>
 								<v-list-item-title @click="exportData"><v-icon>mdi-export</v-icon>
 									Export</v-list-item-title>
@@ -34,6 +35,7 @@
 								<v-list-item-title @click="openImportDialog"><v-icon>mdi-import</v-icon>
 									Import</v-list-item-title>
 							</v-list-item>
+							<v-divider />
 							<v-list-item>
 								<v-list-item-title @click="shareData"><v-icon>mdi-share-variant</v-icon>
 									Teilen</v-list-item-title>
