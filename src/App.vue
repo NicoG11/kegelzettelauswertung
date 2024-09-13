@@ -34,6 +34,11 @@
 								<v-list-item-title @click="openImportDialog"><v-icon>mdi-import</v-icon>
 									Import</v-list-item-title>
 							</v-list-item>
+							<v-list-item>
+								<v-list-item-title @click="shareData"><v-icon>mdi-share-variant</v-icon>
+									Teilen</v-list-item-title>
+							</v-list-item>
+
 
 
 						</v-list>
@@ -48,6 +53,28 @@
 					<v-btn color="red" text @click="snackbar.visible = false" v-bind="attrs">Schließen</v-btn>
 				</template>
 			</v-snackbar>
+
+
+
+
+			<!-- Teilen Dialog -->
+			<!-- Teilen Dialog -->
+			<v-dialog v-model="shareDialog" max-width="500">
+				<v-card>
+					<v-card-title class="headline">Spielstand teilen</v-card-title>
+					<v-card-text>
+						<v-text-field v-model="shareableLink" label="Teilen Sie diesen Link" readonly
+							append-icon="mdi-content-copy" @click:append="copyLink"></v-text-field>
+						<!-- Optional: QR-Code anzeigen -->
+						<!-- Installiere eine QR-Code-Bibliothek wie qrcode.vue -->
+						<!-- <qrcode-vue :value="shareableLink"></qrcode-vue> -->
+					</v-card-text>
+					<v-card-actions>
+						<v-spacer></v-spacer>
+						<v-btn text @click="closeShareDialog">Schließen</v-btn>
+					</v-card-actions>
+				</v-card>
+			</v-dialog>
 
 			<!-- Import Dialog -->
 			<v-dialog v-model="importDialog" max-width="500">
@@ -157,6 +184,18 @@ const spieltag = ref('');
 const savedGames = ref([]);
 
 const importDialog = ref(false);
+
+const shareDialog = ref(false);
+const shareableLink = ref('');
+
+function shareData() {
+	shareableLink.value = getShareableLink();
+	shareDialog.value = true;
+}
+
+function closeShareDialog() {
+	shareDialog.value = false;
+}
 
 
 
@@ -280,5 +319,71 @@ function handleFileUpload(event) {
 	reader.readAsText(file);
 }
 
+function getShareableLink() {
+	const datenZumTeilen = {
+		spieltag: spieltag.value,
+		datum: new Date().toLocaleDateString(),
+		spielerListe: spielerStore.spielerListe,
+	};
+	const jsonString = JSON.stringify(datenZumTeilen);
+	const encodedData = btoa(jsonString); // Base64 kodieren
+	const url = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
+	return url;
+}
+
+function copyLink() {
+	if (navigator.clipboard && window.isSecureContext) {
+		// Moderne Methode mit Clipboard API
+		navigator.clipboard.writeText(shareableLink.value)
+			.then(() => {
+				snackbar.message = 'Link wurde in die Zwischenablage kopiert.';
+				snackbar.visible = true;
+			})
+			.catch(err => {
+				snackbar.message = 'Fehler beim Kopieren des Links.';
+				snackbar.visible = true;
+			});
+	} else {
+		// Fallback-Methode für ältere Browser
+		const textArea = document.createElement('textarea');
+		textArea.value = shareableLink.value;
+		// Verhindere, dass die Seite nach unten scrollt
+		textArea.style.position = 'fixed';
+		textArea.style.top = '0';
+		textArea.style.left = '0';
+		document.body.appendChild(textArea);
+		textArea.focus();
+		textArea.select();
+		try {
+			const successful = document.execCommand('copy');
+			snackbar.message = successful ? 'Link wurde in die Zwischenablage kopiert.' : 'Fehler beim Kopieren des Links.';
+			snackbar.visible = true;
+		} catch (err) {
+			snackbar.message = 'Fehler beim Kopieren des Links.';
+			snackbar.visible = true;
+		}
+		document.body.removeChild(textArea);
+	}
+}
+
+onMounted(() => {
+	const params = new URLSearchParams(window.location.search);
+	if (params.has('data')) {
+		try {
+			const encodedData = params.get('data');
+			const jsonString = atob(encodedData);
+			const daten = JSON.parse(jsonString);
+			spielerStore.spielerListe = daten.spielerListe;
+			spieltag.value = daten.spieltag || '';
+			snackbar.message = 'Daten wurden aus der URL geladen.';
+			snackbar.visible = true;
+			// Optional: Entferne den data-Parameter aus der URL
+			window.history.replaceState({}, document.title, window.location.pathname);
+		} catch (error) {
+			snackbar.message = 'Fehler beim Laden der Daten aus der URL.';
+			snackbar.visible = true;
+		}
+	}
+});
 
 </script>

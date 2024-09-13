@@ -22,7 +22,7 @@ const items = [
 		icon: "mdi-clock-time-four-outline",
 		date: "13.09.2024",
 		title: "Version 1.1.2 - Export/Import",
-		text: 'Export und Import der Daten um die Ergebnisse Lokal zu speichern und wieder zu laden. JSON Format zum teilen der Daten.',
+		text: 'Export und Import der Daten um die Ergebnisse Lokal zu speichern und wieder zu laden. JSON Format zum teilen der Daten. Share Funktion um die Daten per Link zu teilen.',
 	},
 ];
 </script>
