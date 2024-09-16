@@ -407,7 +407,7 @@ function loadDataFromUrl() {
 			// Entferne den data-Parameter aus der URL
 			window.history.replaceState({}, document.title, window.location.pathname);
 		} catch (error) {
-			snackbar.message = 'Fehler beim Laden der Daten aus der URL.';
+			snackbar.message = `Fehler beim Laden der Daten aus der URL. ${error}`;
 			snackbar.visible = true;
 		}
 	}
