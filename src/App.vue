@@ -382,8 +382,7 @@ function loadDataFromUrl() {
 	if (params.has('data')) {
 		try {
 			const encodedData = params.get('data');
-			const compressedData = atob(encodedData);
-			const jsonString = pako.inflate(compressedData, { to: 'string' });
+			const jsonString = atob(encodedData);
 			const daten = JSON.parse(jsonString);
 
 			// SpielerListe aktualisieren und Reaktivität sicherstellen
