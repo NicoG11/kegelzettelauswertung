@@ -369,23 +369,48 @@ function copyLink() {
 }
 
 onMounted(() => {
+	loadDataFromUrl();
+	if (!spielerStore.selectedPlayer) {
+		// redirect to startpage
+		router.push({ path: '/' });
+	}
+
+});
+
+function loadDataFromUrl() {
 	const params = new URLSearchParams(window.location.search);
 	if (params.has('data')) {
 		try {
 			const encodedData = params.get('data');
-			const jsonString = atob(encodedData);
+			const compressedData = atob(encodedData);
+			const jsonString = pako.inflate(compressedData, { to: 'string' });
 			const daten = JSON.parse(jsonString);
-			spielerStore.spielerListe = daten.spielerListe;
-			spieltag.value = daten.spieltag || '';
+
+			// SpielerListe aktualisieren und Reaktivität sicherstellen
+			spielerStore.$patch({
+				spielerListe: daten.spielerListe,
+			});
+
+			// Spieltag aktualisieren, falls benötigt
+			spielerStore.spieltag = daten.spieltag || '';
+
+			// selectedPlayer setzen
+			if (spielerStore.spielerListe.length > 0) {
+				spielerStore.setSelectedPlayer(spielerStore.spielerListe[0]);
+			} else {
+				spielerStore.selectedPlayer = null;
+			}
+
 			snackbar.message = 'Daten wurden aus der URL geladen.';
 			snackbar.visible = true;
-			// Optional: Entferne den data-Parameter aus der URL
+
+			// Entferne den data-Parameter aus der URL
 			window.history.replaceState({}, document.title, window.location.pathname);
 		} catch (error) {
 			snackbar.message = 'Fehler beim Laden der Daten aus der URL.';
 			snackbar.visible = true;
 		}
 	}
-});
+}
 
 </script>
