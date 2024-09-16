@@ -328,7 +328,8 @@ function getShareableLink() {
 		spielerListe: spielerStore.spielerListe,
 	};
 	const jsonString = JSON.stringify(datenZumTeilen);
-	const encodedData = btoa(jsonString); // Base64 kodieren
+	const compressedData = pako.deflate(jsonString, { to: 'string' }); // Daten komprimieren
+	const encodedData = base64EncodeUnicode(compressedData); // Unicode-sichere Base64-Kodierung
 	const url = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
 	return url;
 }
@@ -382,7 +383,8 @@ function loadDataFromUrl() {
 	if (params.has('data')) {
 		try {
 			const encodedData = params.get('data');
-			const jsonString = atob(encodedData);
+			const compressedData = base64DecodeUnicode(encodedData); // Unicode-sichere Base64-Dekodierung
+			const jsonString = pako.inflate(compressedData, { to: 'string' }); // Daten dekomprimieren
 			const daten = JSON.parse(jsonString);
 
 			// SpielerListe aktualisieren und Reaktivität sicherstellen
@@ -390,8 +392,8 @@ function loadDataFromUrl() {
 				spielerListe: daten.spielerListe,
 			});
 
-			// Spieltag aktualisieren, falls benötigt
-			spielerStore.spieltag = daten.spieltag || '';
+			// Spieltag aktualisieren
+			spieltag.value = daten.spieltag || '';
 
 			// selectedPlayer setzen
 			if (spielerStore.spielerListe.length > 0) {
@@ -406,10 +408,27 @@ function loadDataFromUrl() {
 			// Entferne den data-Parameter aus der URL
 			window.history.replaceState({}, document.title, window.location.pathname);
 		} catch (error) {
-			snackbar.message = 'Fehler beim Laden der Daten aus der URL.';
+			snackbar.message = `Fehler beim Laden der Daten aus der URL: ${error}`;
 			snackbar.visible = true;
 		}
 	}
 }
+
+function base64EncodeUnicode(str) {
+	// Wandelt Unicode-Zeichen korrekt in Base64 um
+	return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+		function (match, p1) {
+			return String.fromCharCode('0x' + p1);
+		}));
+}
+
+function base64DecodeUnicode(str) {
+	// Dekodiert Base64 korrekt zu Unicode-Zeichen
+	return decodeURIComponent(Array.prototype.map.call(atob(str), function (c) {
+		return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+	}).join(''));
+}
+
+
 
 </script>
