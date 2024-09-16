@@ -1,12 +1,21 @@
 <script setup>
 const items = [
+
 	{
-		id: 1,
+		id: 4,
+		color: "primary",
+		icon: "mdi-clock-time-four-outline",
+		date: "16.09.2024",
+		title: "Version 1.1.3 - Bugfix",
+		text: 'Bugfix, Computed, Daten aktualisieren sich nicht bei der Auswertung.',
+	},
+	{
+		id: 3,
 		color: "primary",
 		icon: "mdi-clock-time-four-outline",
 		date: "13.09.2024",
-		title: "Version 1.0.1 - Init()",
-		text: 'Erste Version des Kegelzettel Auswerters 2024. Überarbeitet wurde "Wer bekommt was" (Es wird nach Abräumen, Fehlwürfe und Volle unterschieden.)',
+		title: "Version 1.1.2 - Export/Import",
+		text: 'Export und Import der Daten um die Ergebnisse Lokal zu speichern und wieder zu laden. JSON Format zum teilen der Daten. Share Funktion um die Daten per Link zu teilen.',
 	},
 	{
 		id: 2,
@@ -17,13 +26,13 @@ const items = [
 		text: 'Speichern und Laden Button um die Ergebnisse Lokal zu speichern und wieder zu laden. Keine Datenbank, wird alles nur lokal im Browser gespeichert. Werden die Datengelöscht sin dsie auch weg.',
 	},
 	{
-		id: 3,
+		id: 1,
 		color: "primary",
 		icon: "mdi-clock-time-four-outline",
 		date: "13.09.2024",
-		title: "Version 1.1.2 - Export/Import",
-		text: 'Export und Import der Daten um die Ergebnisse Lokal zu speichern und wieder zu laden. JSON Format zum teilen der Daten. Share Funktion um die Daten per Link zu teilen.',
-	},
+		title: "Version 1.0.1 - Init()",
+		text: 'Erste Version des Kegelzettel Auswerters 2024. Überarbeitet wurde "Wer bekommt was" (Es wird nach Abräumen, Fehlwürfe und Volle unterschieden.)',
+	}
 ];
 </script>
 
