@@ -238,7 +238,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 				let sum = 0;
 				for (let lane = 1; lane <= 4; lane++) {
 					sum += getBahnGesamtSumme(
-						calculateFines(player?.bahnen[lane]),
+						calculateFines(player?.bahnen[lane], player),
 						"other",
 					);
 				}
@@ -252,7 +252,9 @@ export const useSpielerStore = defineStore("spielerStore", {
 			let sum = 0;
 			if (player) {
 				for (let lane = 1; lane <= 4; lane++) {
-					sum += getBahnGesamtSumme(calculateFines(player?.bahnen[lane]));
+					sum += getBahnGesamtSumme(
+						calculateFines(player?.bahnen[lane], player),
+					);
 				}
 			}
 
