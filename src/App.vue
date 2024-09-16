@@ -156,6 +156,7 @@ import { useRouter } from "vue-router";
 import { ref, reactive, computed, onMounted } from 'vue';
 import { saveAs } from 'file-saver';
 import { useSpielerStore } from '@/stores/spielerStore';
+import pako from 'pako';
 
 const router = useRouter();
 const spielerStore = useSpielerStore();
@@ -321,18 +322,7 @@ function handleFileUpload(event) {
 	reader.readAsText(file);
 }
 
-function getShareableLink() {
-	const datenZumTeilen = {
-		spieltag: spieltag.value,
-		datum: new Date().toLocaleDateString(),
-		spielerListe: spielerStore.spielerListe,
-	};
-	const jsonString = JSON.stringify(datenZumTeilen);
-	const compressedData = pako.deflate(jsonString, { to: 'string' }); // Daten komprimieren
-	const encodedData = base64EncodeUnicode(compressedData); // Unicode-sichere Base64-Kodierung
-	const url = `${window.location.origin}${window.location.pathname}?data=${encodedData}`;
-	return url;
-}
+
 
 function copyLink() {
 	if (navigator.clipboard && window.isSecureContext) {
@@ -378,21 +368,58 @@ onMounted(() => {
 
 });
 
+function getShareableLink() {
+	const datenZumTeilen = {
+		spieltag: spieltag.value,
+		datum: new Date().toLocaleDateString(),
+		spielerListe: spielerStore.spielerListe,
+	};
+
+	const jsonString = JSON.stringify(datenZumTeilen);
+
+
+	// Komprimiere die Daten und erhalte ein Uint8Array
+	const compressedData = pako.deflate(jsonString);
+
+
+	// Konvertiere das Uint8Array in Base64
+	const base64Data = arrayBufferToBase64(compressedData);
+
+
+	// URL-enkodiere die Base64-Daten
+	const urlSafeData = encodeURIComponent(base64Data);
+
+
+	const url = `${window.location.origin}${window.location.pathname}?data=${urlSafeData}`;
+	return url;
+}
+
 function loadDataFromUrl() {
 	const params = new URLSearchParams(window.location.search);
 	if (params.has('data')) {
 		try {
-			const encodedData = params.get('data');
-			const compressedData = base64DecodeUnicode(encodedData); // Unicode-sichere Base64-Dekodierung
-			const jsonString = pako.inflate(compressedData, { to: 'string' }); // Daten dekomprimieren
+			const urlSafeData = params.get('data');
+
+
+			// URL-dekodieren
+			const base64Data = decodeURIComponent(urlSafeData);
+
+
+			// Base64-dekodieren und in ArrayBuffer umwandeln
+			const compressedDataBuffer = base64ToArrayBuffer(base64Data);
+
+
+			// Dekomprimiere die Daten
+			const jsonString = pako.inflate(new Uint8Array(compressedDataBuffer), { to: 'string' });
+
+
 			const daten = JSON.parse(jsonString);
 
-			// SpielerListe aktualisieren und Reaktivität sicherstellen
+
+			// Aktualisiere den Store und die Variablen
 			spielerStore.$patch({
 				spielerListe: daten.spielerListe,
 			});
-
-			// Spieltag aktualisieren
 			spieltag.value = daten.spieltag || '';
 
 			// selectedPlayer setzen
@@ -408,27 +435,31 @@ function loadDataFromUrl() {
 			// Entferne den data-Parameter aus der URL
 			window.history.replaceState({}, document.title, window.location.pathname);
 		} catch (error) {
-			snackbar.message = `Fehler beim Laden der Daten aus der URL: ${error}`;
+			snackbar.message = `Fehler beim Laden der Daten aus der URL: ${error.message}`;
 			snackbar.visible = true;
 		}
 	}
 }
 
-function base64EncodeUnicode(str) {
-	// Wandelt Unicode-Zeichen korrekt in Base64 um
-	return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
-		function (match, p1) {
-			return String.fromCharCode('0x' + p1);
-		}));
+
+function arrayBufferToBase64(buffer) {
+	let binary = '';
+	const bytes = new Uint8Array(buffer);
+	const len = bytes.byteLength;
+	for (let i = 0; i < len; i++) {
+		binary += String.fromCharCode(bytes[i]);
+	}
+	return btoa(binary);
 }
 
-function base64DecodeUnicode(str) {
-	// Dekodiert Base64 korrekt zu Unicode-Zeichen
-	return decodeURIComponent(Array.prototype.map.call(atob(str), function (c) {
-		return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-	}).join(''));
+function base64ToArrayBuffer(base64) {
+	const binary_string = atob(base64);
+	const len = binary_string.length;
+	const bytes = new Uint8Array(len);
+	for (let i = 0; i < len; i++) {
+		bytes[i] = binary_string.charCodeAt(i);
+	}
+	return bytes.buffer;
 }
-
-
 
 </script>
