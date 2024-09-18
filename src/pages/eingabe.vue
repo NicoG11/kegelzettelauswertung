@@ -67,11 +67,11 @@ const startRecognition = async () => {
 		snackbar.visible = true;
 
 		recognizer.on('result', (message) => {
-			// console.log(`Result: ${message.result.text}`);
+			console.log(`Result: ${message.result.text}`);
 			processResult(message.result.text);
 		});
 		recognizer.on('partialresult', (message) => {
-			// console.log(`Partial result: ${message.result.partial}`);
+			console.log(`Partial result: ${message.result.partial}`);
 			// processResult(message.result.partial);
 		});
 
@@ -147,9 +147,10 @@ const processResult = (text) => {
 const processSpeechResult = (text) => {
 	const words = text.toLowerCase().split(' ');
 	words.forEach((word) => {
+		console.log('Erkanntes Wort:', word);
 		const number = numberMap[word];
 		if (number !== undefined) {
-			// console.log('Erkannte Zahl:', number);
+			console.log('Erkannte Zahl:', number);
 			// Füge die Zahl in deine Anwendung ein
 			addNumberToLaneScore(number);
 		}
@@ -157,24 +158,36 @@ const processSpeechResult = (text) => {
 };
 
 const numberMap = {
+	'zero': 0,
+	'nücht': 0,
 	'null': 0,
 	'ull': 0,
+	'fehler': 0,
 	'ein': 1,
 	'eins': 1,
 	'eine': 1,
 	'zwei': 2,
 	'zwo': 2,
 	'drei': 3,
+	'brei': 3,
 	'vier': 4,
 	'schier': 4,
 	'fier': 4,
 	'für': 4,
+	'hier': 4,
+	'share': 4,
+	'cher': 4,
+	'viel': 4,
 	'fünf': 5,
 	'funf': 5,
 	'sechs': 6,
+	'sex': 6,
 	'sieben': 7,
 	'sieb': 7,
+	'sie': 7,
+	'sie wollen': 7,
 	'zielen': 7,
+	'siegeln': 7,
 	'zählen': 7,
 	'acht': 8,
 	'ach': 8,
@@ -182,6 +195,7 @@ const numberMap = {
 	'neuen': 9,
 	'neu': 9,
 	'nein': 9,
+	'alle': 9,
 	// Weitere Zahlen hinzufügen
 };
 
