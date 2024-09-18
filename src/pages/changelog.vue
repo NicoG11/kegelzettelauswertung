@@ -1,6 +1,13 @@
 <script setup>
 const items = [
-
+	{
+		id: 5,
+		color: "primary",
+		icon: "mdi-clock-time-four-outline",
+		date: "18.09.2024",
+		title: "Version 1.2.0 - Spracherkennung",
+		text: 'Zahlen per Sprache eingeben',
+	},
 	{
 		id: 4,
 		color: "primary",
