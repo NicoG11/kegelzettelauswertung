@@ -8,11 +8,10 @@ import { useSpielerStore } from "@/stores/spielerStore";
 
 import { computed, onMounted, onUnmounted, ref, watch, reactive } from "vue";
 import { useRouter } from "vue-router";
-import { createModel, KaldiRecognizer, Model } from 'vosk-browser';
+import { createModel } from 'vosk-browser';
 
 
 const isRecording = ref(false);
-const statusMessage = ref('Klicke auf den Button, um die Spracherkennung zu starten.');
 const transcript = ref('');
 
 let recognizer = null;
@@ -37,7 +36,8 @@ const toggleSpeechRecognition = async (lane) => {
 
 const startRecognition = async () => {
 	try {
-		statusMessage.value = 'Lade das Sprachmodell...';
+		snackbar.message = 'Lade Spracherkennungsmodell...';
+		snackbar.visible = true;
 
 
 		// Lade das Modell
@@ -48,31 +48,41 @@ const startRecognition = async () => {
 
 		const sampleRate = 48000;
 
-
+		snackbar.message = 'Erstelle Recognizer...';
+		snackbar.visible = true;
 		// Erstelle einen Recognizer
 		recognizer = new model.KaldiRecognizer(sampleRate);
 
 
 		// Überprüfe, ob der Recognizer erstellt wurde
 		if (!recognizer) {
-			console.error('Recognizer konnte nicht erstellt werden.');
-			statusMessage.value = 'Fehler bei der Initialisierung des Recognizers.';
+			// console.error('Recognizer konnte nicht erstellt werden.');
+			snackbar.message = 'Recognizer konnte nicht erstellt werden.';
+			snackbar.visible = true;
 			return;
 		}
 		recognizer.setWords(true);
 
+		snackbar.message = 'Erstelle Recognizermethoden...';
+		snackbar.visible = true;
+
 		recognizer.on('result', (message) => {
-			console.log(`Result: ${message.result.text}`);
+			// console.log(`Result: ${message.result.text}`);
 			processResult(message.result.text);
 		});
 		recognizer.on('partialresult', (message) => {
-			console.log(`Partial result: ${message.result.partial}`);
+			// console.log(`Partial result: ${message.result.partial}`);
 			// processResult(message.result.partial);
 		});
 
 		recognizer.on('error', (message) => {
-			console.error('Recognizer Error:', message);
+			// console.error('Recognizer Error:', message);
+			snackbar.message = 'Recognizer Error: ' + message;
+			snackbar.visible = true;
 		});
+
+		snackbar.message = 'Erlauben Sie den Zugriff auf das Mikrofon...';
+		snackbar.visible = true;
 
 		// Zugriff auf das Mikrofon
 		mediaStream = await navigator.mediaDevices.getUserMedia({
@@ -99,10 +109,10 @@ const startRecognition = async () => {
 		recognizerNode.connect(audioContext.destination);
 
 		isRecording.value = true;
-		snackbar.message = 'Spracherkennung gestartet. Bitte sprechen Sie die Zahlen deutlich aus. Und machen Sie dazischen eine kleine Pause.';
+		snackbar.message = 'Spracherkennung erfolgreich gestartet. Bitte sprechen Sie die Zahlen deutlich aus. Und machen Sie dazischen eine kleine Pause.';
 		snackbar.visible = true;
 	} catch (error) {
-		console.error('Fehler bei der Initialisierung der Spracherkennung:', error);
+		// console.error('Fehler bei der Initialisierung der Spracherkennung:', error);
 		snackbar.message = 'Fehler bei der Initialisierung der Spracherkennung. ' + error;
 		snackbar.visible = true;
 	}
@@ -139,7 +149,7 @@ const processSpeechResult = (text) => {
 	words.forEach((word) => {
 		const number = numberMap[word];
 		if (number !== undefined) {
-			console.log('Erkannte Zahl:', number);
+			// console.log('Erkannte Zahl:', number);
 			// Füge die Zahl in deine Anwendung ein
 			addNumberToLaneScore(number);
 		}
