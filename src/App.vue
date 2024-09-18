@@ -59,7 +59,7 @@
 
 
 
-			<!-- Teilen Dialog -->
+
 			<!-- Teilen Dialog -->
 			<v-dialog v-model="shareDialog" max-width="500">
 				<v-card>

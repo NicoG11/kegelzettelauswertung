@@ -60,6 +60,7 @@ const spielerListeMitWerten = computed(() => {
 				<div class="d-flex flex-column ga-2">
 					<v-btn flat size="small" color="primary" @click="geheZuSeite(spieler, 'eingabe')">Eingabe</v-btn>
 				</div>
+
 			</template>
 		</v-list-item>
 	</v-list>
