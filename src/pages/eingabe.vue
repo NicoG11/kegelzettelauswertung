@@ -21,7 +21,7 @@ let audioContext = null;
 let loadedModel = null;
 let recognizerNode = null;
 
-const modelUrl = '/vosk-model-small-de-0.15.tar.gz';
+const modelUrl = `${import.meta.env.BASE_URL}vosk-model-small-de-0.15.tar.gz`;
 
 const toggleSpeechRecognition = async (lane) => {
 	currentLane.value = lane;
@@ -384,13 +384,13 @@ function addNumberToLaneScore(number) {
 													<td class="text-center px-1 text-subtitle-2"
 														@click="changeInputValue(n, index)">
 														{{ spielerStore.selectedPlayer?.bahnen[n].length >= wurf ?
-														spielerStore.selectedPlayer?.bahnen[n][index] : '' }}
+															spielerStore.selectedPlayer?.bahnen[n][index] : '' }}
 													</td>
 													<td class="text-right px-1 text-caption">{{ wurf + 15 }}</td>
 													<td class="text-center px-1 text-subtitle-2"
 														@click="changeInputValue(n, index + 15)">
 														{{ spielerStore.selectedPlayer?.bahnen[n].length >= wurf + 15 ?
-														spielerStore.selectedPlayer?.bahnen[n][index + 15] : '' }}
+															spielerStore.selectedPlayer?.bahnen[n][index + 15] : '' }}
 													</td>
 												</tr>
 											</tbody>
