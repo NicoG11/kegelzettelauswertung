@@ -5,7 +5,7 @@ const items = [
 		color: "primary",
 		icon: "mdi-clock-time-four-outline",
 		date: "18.09.2024",
-		title: "Version 1.2.1 - Spracherkennung",
+		title: "Version 1.3.0 - Spracherkennung",
 		text: 'Zahlen per Sprache eingeben',
 	},
 	{
