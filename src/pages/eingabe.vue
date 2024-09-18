@@ -6,8 +6,175 @@ import {
 } from "@/services/rules";
 import { useSpielerStore } from "@/stores/spielerStore";
 
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch, reactive } from "vue";
 import { useRouter } from "vue-router";
+import { createModel, KaldiRecognizer, Model } from 'vosk-browser';
+
+
+const isRecording = ref(false);
+const statusMessage = ref('Klicke auf den Button, um die Spracherkennung zu starten.');
+const transcript = ref('');
+
+let recognizer = null;
+let mediaStream = null;
+let audioContext = null;
+let loadedModel = null;
+let recognizerNode = null;
+
+const modelUrl = '/vosk-model-small-de-0.15.tar.gz';
+
+const toggleSpeechRecognition = async (lane) => {
+	currentLane.value = lane;
+	if (isRecording.value) {
+		stopRecognition();
+	} else {
+		snackbar.message = 'Starte Spracherkennung...';
+		snackbar.visible = true;
+		await startRecognition();
+
+	}
+};
+
+const startRecognition = async () => {
+	try {
+		statusMessage.value = 'Lade das Sprachmodell...';
+
+
+		// Lade das Modell
+		const model = await createModel(modelUrl);
+
+		loadedModel = model;
+
+
+		const sampleRate = 48000;
+
+
+		// Erstelle einen Recognizer
+		recognizer = new model.KaldiRecognizer(sampleRate);
+
+
+		// Überprüfe, ob der Recognizer erstellt wurde
+		if (!recognizer) {
+			console.error('Recognizer konnte nicht erstellt werden.');
+			statusMessage.value = 'Fehler bei der Initialisierung des Recognizers.';
+			return;
+		}
+		recognizer.setWords(true);
+
+		recognizer.on('result', (message) => {
+			console.log(`Result: ${message.result.text}`);
+			processResult(message.result.text);
+		});
+		recognizer.on('partialresult', (message) => {
+			console.log(`Partial result: ${message.result.partial}`);
+			// processResult(message.result.partial);
+		});
+
+		recognizer.on('error', (message) => {
+			console.error('Recognizer Error:', message);
+		});
+
+		// Zugriff auf das Mikrofon
+		mediaStream = await navigator.mediaDevices.getUserMedia({
+			video: false,
+			audio: {
+				echoCancellation: true,
+				noiseSuppression: true,
+			},
+		});
+
+		// Erstelle einen Audio-Kontext
+		audioContext = new (window.AudioContext || window.webkitAudioContext)();
+		const source = audioContext.createMediaStreamSource(mediaStream);
+
+		// Verwende ScriptProcessorNode (falls AudioWorkletNode nicht verfügbar)
+		recognizerNode = audioContext.createScriptProcessor(4096, 1, 1);
+
+		recognizerNode.onaudioprocess = (event) => {
+			// Übergib das AudioBuffer-Objekt direkt
+			recognizer.acceptWaveform(event.inputBuffer);
+		};
+
+		source.connect(recognizerNode);
+		recognizerNode.connect(audioContext.destination);
+
+		isRecording.value = true;
+		snackbar.message = 'Spracherkennung gestartet. Bitte sprechen Sie die Zahlen deutlich aus. Und machen Sie dazischen eine kleine Pause.';
+		snackbar.visible = true;
+	} catch (error) {
+		console.error('Fehler bei der Initialisierung der Spracherkennung:', error);
+		snackbar.message = 'Fehler bei der Initialisierung der Spracherkennung. ' + error;
+		snackbar.visible = true;
+	}
+};
+
+const stopRecognition = () => {
+	if (recognizerNode) {
+		recognizerNode.disconnect();
+	}
+	if (audioContext) {
+		audioContext.close();
+	}
+	if (mediaStream) {
+		mediaStream.getTracks().forEach((track) => track.stop());
+	}
+	isRecording.value = false;
+
+	snackbar.message = 'Spracherkennung beendet.';
+	snackbar.visible = true;
+};
+
+const processResult = (text) => {
+	if (text && text.length > 0) {
+		console.log('Erkannt:', text);
+		transcript.value = text;
+
+		// Hier kannst du das Ergebnis weiter verarbeiten
+		processSpeechResult(text);
+	}
+};
+
+const processSpeechResult = (text) => {
+	const words = text.toLowerCase().split(' ');
+	words.forEach((word) => {
+		const number = numberMap[word];
+		if (number !== undefined) {
+			console.log('Erkannte Zahl:', number);
+			// Füge die Zahl in deine Anwendung ein
+			addNumberToLaneScore(number);
+		}
+	});
+};
+
+const numberMap = {
+	'null': 0,
+	'ull': 0,
+	'ein': 1,
+	'eins': 1,
+	'eine': 1,
+	'zwei': 2,
+	'zwo': 2,
+	'drei': 3,
+	'vier': 4,
+	'schier': 4,
+	'fier': 4,
+	'für': 4,
+	'fünf': 5,
+	'funf': 5,
+	'sechs': 6,
+	'sieben': 7,
+	'sieb': 7,
+	'zielen': 7,
+	'zählen': 7,
+	'acht': 8,
+	'ach': 8,
+	'neun': 9,
+	'neuen': 9,
+	'neu': 9,
+	'nein': 9,
+	// Weitere Zahlen hinzufügen
+};
+
 
 const router = useRouter();
 
@@ -20,6 +187,13 @@ const dialog = ref(false);
 const newValue = ref("");
 const currentLane = ref(null);
 const currentIndex = ref(null);
+
+// Snackbar Zustand
+const snackbar = reactive({
+	visible: false,
+	message: '',
+	timeout: 3000, // Zeit in Millisekunden, wie lange die Snackbar angezeigt wird
+});
 
 const disabled = computed(() => {
 	return aktuellerSchritt.value === 1
@@ -38,7 +212,7 @@ watch(aktuellerSchritt, async (newValue, oldValue) => {
 
 onMounted(() => {
 	if (!spielerStore.selectedPlayer) {
-		//r redirect to startpage
+		// Redirect to startpage
 		router.push({ path: "/" });
 	}
 });
@@ -87,9 +261,35 @@ const gesamtSummePerBahn = computed(() => {
 	}
 	return result;
 });
+
+function addNumberToLaneScore(number) {
+
+	if (typeof number !== 'number' || number < 0 || number > 9) return;
+
+	if (
+		spielerStore.selectedPlayer &&
+		spielerStore.selectedPlayer.bahnen[currentLane.value] &&
+		spielerStore.selectedPlayer.bahnen[currentLane.value].length < 30
+	) {
+		spielerStore.addScore(currentLane.value, number);
+	} else {
+		snackbar.message = 'Bedingungen für das Hinzufügen der Zahl sind nicht erfüllt.';
+		snackbar.visible = true;
+	}
+}
 </script>
 
+
+
 <template>
+	<!-- Snackbar für Hinweise -->
+	<v-snackbar v-model="snackbar.visible" :timeout="snackbar.timeout">
+		{{ snackbar.message }}
+		<template v-slot:action="{ attrs }">
+			<v-btn color="red" text @click="snackbar.visible = false" v-bind="attrs">Schließen</v-btn>
+		</template>
+	</v-snackbar>
+
 	<v-dialog v-model="dialog" max-width="300px">
 		<v-card>
 			<v-card-title>Wurf {{ currentIndex + 1 }}</v-card-title>
@@ -146,6 +346,15 @@ const gesamtSummePerBahn = computed(() => {
 											<v-btn color="error" @click="spielerStore.clearLane(n)">Bahn {{ n
 												}}<br />löschen</v-btn>
 										</div>
+										<v-divider class="my-4"></v-divider>
+
+										<v-btn variant="outlined" @click="toggleSpeechRecognition(n)" class="speech-btn"
+											:class="{ recording: isRecording }">
+											<div class="speech-icon">
+												<v-icon v-if="isRecording">mdi-stop</v-icon>
+												<v-icon v-else>mdi-microphone</v-icon>
+											</div>
+										</v-btn>
 									</v-col>
 									<v-col cols="5" class="px-0">
 										<table>
@@ -175,13 +384,13 @@ const gesamtSummePerBahn = computed(() => {
 													<td class="text-center px-1 text-subtitle-2"
 														@click="changeInputValue(n, index)">
 														{{ spielerStore.selectedPlayer?.bahnen[n].length >= wurf ?
-															spielerStore.selectedPlayer?.bahnen[n][index] : '' }}
+														spielerStore.selectedPlayer?.bahnen[n][index] : '' }}
 													</td>
 													<td class="text-right px-1 text-caption">{{ wurf + 15 }}</td>
 													<td class="text-center px-1 text-subtitle-2"
 														@click="changeInputValue(n, index + 15)">
 														{{ spielerStore.selectedPlayer?.bahnen[n].length >= wurf + 15 ?
-															spielerStore.selectedPlayer?.bahnen[n][index + 15] : '' }}
+														spielerStore.selectedPlayer?.bahnen[n][index + 15] : '' }}
 													</td>
 												</tr>
 											</tbody>
@@ -236,6 +445,7 @@ const gesamtSummePerBahn = computed(() => {
 								</v-expansion-panels>
 							</v-card-text>
 						</v-card>
+
 					</v-stepper-window-item>
 
 					<v-stepper-window-item :value="anzahlBahnen + 1">
@@ -324,5 +534,50 @@ table.auswertung tr td {
 
 .text-subtitle-2 {
 	line-height: normal;
+}
+
+.speech-btn {
+	cursor: pointer;
+}
+
+.speech-icon {
+	position: relative;
+
+	border: 2px solid transparent;
+	border-radius: 50%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: border-color 0.3s, background-color 0.3s;
+}
+
+.speech-btn.recording .speech-icon {
+	border-color: red;
+	background-color: rgba(255, 0, 0, 0.1);
+}
+
+.speech-btn.recording .speech-icon v-icon {
+	color: red;
+}
+
+
+.speech-btn.recording .speech-icon {
+	border-color: red;
+	background-color: rgba(255, 0, 0, 0.1);
+	animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+	0% {
+		box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.4);
+	}
+
+	70% {
+		box-shadow: 0 0 0 10px rgba(255, 0, 0, 0);
+	}
+
+	100% {
+		box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
+	}
 }
 </style>
