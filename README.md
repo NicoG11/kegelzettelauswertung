@@ -3,7 +3,7 @@
 ## ![buildprocess](https://github.com/NicoG11/kegelzettelauswertung/actions/workflows/static.yml/badge.svg?event=push)
 
 # Kegelzettelauswertung
-- aktuelle Version: 1.2.0
+- aktuelle Version: 1.3.0
 - [Demo GithubPage](https://nicog11.github.io/kegelzettelauswertung/)
 
 
