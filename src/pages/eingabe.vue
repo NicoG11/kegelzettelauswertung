@@ -277,6 +277,7 @@ const gesamtSummePerBahn = computed(() => {
 		const fines = finesPerBahn.value[n];
 		const regularSum = getBahnGesamtSumme(fines);
 		const otherSum = getBahnGesamtSumme(fines, 'other');
+
 		result[n] = {
 			regular: regularSum,
 			other: otherSum,

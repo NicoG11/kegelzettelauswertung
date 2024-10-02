@@ -94,6 +94,7 @@ export function calculateFines(throws, player) {
 	if (throws?.length > 0) {
 		throws.forEach((throwNumber, index) => {
 			// Validierung des Wurfwerts
+			throwNumber = Number.parseInt(throwNumber);
 			if (throwNumber < 0 || throwNumber > 9) {
 				console.error(`Ungültiger Wurfwert bei Index ${index}: ${throwNumber}`);
 				throwNumber = Math.max(0, Math.min(9, throwNumber));
