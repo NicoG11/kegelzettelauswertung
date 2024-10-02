@@ -51,7 +51,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 
 		addScore(lane, score) {
 			if (this.selectedPlayer) {
-				this.selectedPlayer.bahnen[lane].push(score);
+				this.selectedPlayer.bahnen[lane].push(Number.parseInt(score));
 			}
 		},
 
@@ -62,7 +62,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 		},
 		changeScore(lane, index, newValue) {
 			if (this.selectedPlayer) {
-				this.selectedPlayer.bahnen[lane][index] = newValue;
+				this.selectedPlayer.bahnen[lane][index] = Number.parseInt(newValue);
 			}
 		},
 
