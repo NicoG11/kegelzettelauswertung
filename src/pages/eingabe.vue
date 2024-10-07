@@ -12,7 +12,7 @@ import { createModel } from 'vosk-browser';
 
 
 const isRecording = ref(false);
-const transcript = ref('');
+
 
 let recognizer = null;
 let mediaStream = null;
@@ -22,28 +22,25 @@ let recognizerNode = null;
 
 const modelUrl = `${import.meta.env.BASE_URL}vosk-model-small-de-0.15.tar.gz`;
 
-const toggleSpeechRecognition = async (lane) => {
-	currentLane.value = lane;
-	if (isRecording.value) {
-		stopRecognition();
-	} else {
-		snackbar.message = 'Starte Spracherkennung...';
-		snackbar.visible = true;
-		await startRecognition();
+// Snackbar Zustand
+const snackbar = reactive({
+	visible: false,
+	message: '',
+	timeout: 3000, // Zeit in Millisekunden, wie lange die Snackbar angezeigt wird
+});
 
-	}
-};
+
 
 const startRecognition = async () => {
 	try {
 		snackbar.message = 'Lade Spracherkennungsmodell...';
 		snackbar.visible = true;
 
-
-		// Lade das Modell
-		const model = await createModel(modelUrl);
-
-		loadedModel = model;
+		// Lade das Modell nur, wenn es noch nicht geladen wurde
+		if (!loadedModel) {
+			// Lade das Modell
+			loadedModel = await createModel(modelUrl);
+		}
 
 
 		const sampleRate = 48000;
@@ -51,7 +48,7 @@ const startRecognition = async () => {
 		snackbar.message = 'Erstelle Recognizer...';
 		snackbar.visible = true;
 		// Erstelle einen Recognizer
-		recognizer = new model.KaldiRecognizer(sampleRate);
+		recognizer = new loadedModel.KaldiRecognizer(sampleRate);
 
 
 		// Überprüfe, ob der Recognizer erstellt wurde
@@ -115,47 +112,61 @@ const startRecognition = async () => {
 		// console.error('Fehler bei der Initialisierung der Spracherkennung:', error);
 		snackbar.message = 'Fehler bei der Initialisierung der Spracherkennung. ' + error;
 		snackbar.visible = true;
+		stopRecognition();
 	}
 };
 
-const stopRecognition = () => {
-	if (recognizerNode) {
-		recognizerNode.disconnect();
-	}
-	if (audioContext) {
-		audioContext.close();
-	}
-	if (mediaStream) {
-		mediaStream.getTracks().forEach((track) => track.stop());
-	}
-	isRecording.value = false;
 
-	snackbar.message = 'Spracherkennung beendet.';
-	snackbar.visible = true;
+// Sprachaufnahme stoppen
+const stopRecognition = () => {
+	try {
+		if (recognizerNode) {
+			recognizerNode.disconnect();
+			recognizerNode = null; // Setze auf null, um sicherzustellen, dass der Garbage Collector es aufräumt
+		}
+
+		if (audioContext) {
+			audioContext.close();
+			audioContext = null; // Setze auf null, um sicherzustellen, dass der Garbage Collector es aufräumt
+		}
+
+		if (mediaStream) {
+			mediaStream.getTracks().forEach((track) => track.stop());
+			mediaStream = null; // Setze auf null, um sicherzustellen, dass der Garbage Collector es aufräumt
+		}
+
+		recognizer = null; // Recognizer ebenfalls freigeben
+		isRecording.value = false;
+		snackbar.message = 'Spracherkennung beendet.';
+		snackbar.visible = true;
+	} catch (error) {
+		snackbar.message = 'Fehler beim Stoppen der Spracherkennung: ' + error;
+		snackbar.visible = true;
+	}
+};
+
+const toggleSpeechRecognition = async (lane) => {
+
+	if (isRecording.value) {
+		stopRecognition();
+	} else {
+		snackbar.message = 'Starte Spracherkennung...';
+		snackbar.visible = true;
+		await startRecognition();
+
+	}
 };
 
 const processResult = (text) => {
 	if (text && text.length > 0) {
 		console.log('Erkannt:', text);
-		transcript.value = text;
 
 		// Hier kannst du das Ergebnis weiter verarbeiten
 		processSpeechResult(text);
 	}
 };
 
-const processSpeechResult = (text) => {
-	const words = text.toLowerCase().split(' ');
-	words.forEach((word) => {
-		console.log('Erkanntes Wort:', word);
-		const number = numberMap[word];
-		if (number !== undefined) {
-			console.log('Erkannte Zahl:', number);
-			// Füge die Zahl in deine Anwendung ein
-			addNumberToLaneScore(number);
-		}
-	});
-};
+
 
 const numberMap = {
 	'zero': 0,
@@ -199,6 +210,19 @@ const numberMap = {
 	// Weitere Zahlen hinzufügen
 };
 
+const processSpeechResult = (text) => {
+	const words = text.toLowerCase().split(' ');
+	words.forEach((word) => {
+		console.log('Erkanntes Wort:', word);
+		const number = numberMap[word];
+		if (number !== undefined) {
+			console.log('Erkannte Zahl:', number);
+			// Füge die Zahl in deine Anwendung ein
+			addNumberToLaneScore(number);
+		}
+	});
+};
+
 
 const router = useRouter();
 
@@ -212,12 +236,7 @@ const newValue = ref("");
 const currentLane = ref(null);
 const currentIndex = ref(null);
 
-// Snackbar Zustand
-const snackbar = reactive({
-	visible: false,
-	message: '',
-	timeout: 3000, // Zeit in Millisekunden, wie lange die Snackbar angezeigt wird
-});
+
 
 const disabled = computed(() => {
 	return aktuellerSchritt.value === 1
@@ -227,12 +246,7 @@ const disabled = computed(() => {
 			: undefined;
 });
 
-// create watch element for aktuellerSchritt
-watch(aktuellerSchritt, async (newValue, oldValue) => {
-	if (newValue === 5) {
-		//berechnen
-	}
-});
+
 
 onMounted(() => {
 	if (!spielerStore.selectedPlayer) {
