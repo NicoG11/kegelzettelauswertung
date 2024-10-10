@@ -6,9 +6,49 @@ import {
 } from "@/services/rules";
 import { useSpielerStore } from "@/stores/spielerStore";
 
-import { computed, onMounted, onUnmounted, ref, watch, reactive } from "vue";
+import { computed, onMounted, onUnmounted, ref, watch, nextTick, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { createModel } from 'vosk-browser';
+import Tesseract from 'tesseract.js';
+
+
+// OpenCV.js und Vorschau initialisieren
+const cvRef = ref(null);
+// Referenzen und States
+const imagePreview = ref(null); // Pfad zur Bildvorschau
+const isDragging = ref(false); // Status, ob gerade gezogen wird
+const dragStart = ref({ x: 0, y: 0 }); // Startposition des Ziehens
+const selectionBox = ref({ x: 50, y: 50, width: 100, height: 100 }); // Position und Größe des Auswahlrechtecks
+
+const imageElement = ref(null);
+
+// const opencvLoaded = ref(false);
+
+// OpenCV.js dynamisch laden
+// const loadOpenCV = () => {
+// 	return new Promise((resolve, reject) => {
+// 		window.Module = {
+// 			onRuntimeInitialized() {
+// 				cvRef.value = window.cv;
+// 				console.log('OpenCV.js has been successfully loaded');
+// 				opencvLoaded.value = true; // Markiere als geladen
+// 				resolve();
+// 			},
+// 		};
+
+// 		const script = document.createElement('script');
+// 		script.src = 'https://docs.opencv.org/4.10.0/opencv.js';
+// 		script.async = true;
+// 		script.onload = () => console.log('OpenCV.js script loaded');
+// 		script.onerror = (err) => {
+// 			console.error('Error loading OpenCV script:', err);
+// 			reject(err);
+// 		};
+
+// 		document.body.appendChild(script);
+// 	});
+// };
+
 
 
 const isRecording = ref(false);
@@ -21,6 +61,10 @@ let loadedModel = null;
 let recognizerNode = null;
 
 const modelUrl = `${import.meta.env.BASE_URL}vosk-model-small-de-0.15.tar.gz`;
+
+
+
+
 
 // Snackbar Zustand
 const snackbar = reactive({
@@ -248,11 +292,31 @@ const disabled = computed(() => {
 
 
 
-onMounted(() => {
+onMounted(async () => {
 	if (!spielerStore.selectedPlayer) {
 		// Redirect to startpage
 		router.push({ path: "/" });
 	}
+	// try {
+	// 	await loadOpenCV();
+	// 	console.log('OpenCV is ready to use');
+	// 	// Führe nun weitere Vorverarbeitungen durch...
+	// } catch (error) {
+	// 	snackbar.message = 'Fehler beim Laden von OpenCV.js: ' + error.message;
+	// 	snackbar.visible = true;
+	// }
+});
+
+onUnmounted(() => {
+	// Ressourcen freigeben, wenn die Komponente entladen wird
+	if (cvRef.value) {
+		cvRef.value = null; // Freigeben der OpenCV-Referenz
+		console.log('OpenCV resources have been released');
+	}
+	if (stream.value) {
+		stream.value.getTracks().forEach((track) => track.stop());
+	}
+	isCameraActive.value = false;
 });
 
 const changeInputValue = (lane, index) => {
@@ -316,6 +380,210 @@ function addNumberToLaneScore(number) {
 		snackbar.visible = true;
 	}
 }
+
+
+// Methode zum Hochladen eines Bildes
+const handleImageUpload = (event) => {
+	const file = event.target.files[0];
+	if (file) {
+		const reader = new FileReader();
+		reader.onload = async (e) => {
+			// imagePreview.value = e.target.result;
+			const image = e.target.result
+			await nextTick();
+
+			// Nach dem Laden des Bildes die Vorverarbeitung durchführen
+			processImage(image);
+			// try {
+			// 	const processedImage = await preprocessImageWithOpenCV(imagePreview.value);
+			// 	imagePreview.value = processedImage; // Das vorverarbeitete Bild anzeigen
+			// } catch (error) {
+			// 	console.error('Fehler bei der Bildvorverarbeitung:', error);
+			// }
+		};
+		reader.readAsDataURL(file);
+	}
+};
+
+
+const videoElement = ref(null);
+const stream = ref(null);
+const isCameraActive = ref(false);
+
+// Stoppe die Kamera
+const stopCamera = () => {
+	if (stream.value) {
+		stream.value.getTracks().forEach((track) => track.stop());
+		stream.value = null;
+		isCameraActive.value = false;
+	}
+};
+
+// Funktion, um die Kamera zu starten und Vorschau zu zeigen
+const startCamera = async () => {
+	try {
+		// Zugriff auf die Kamera
+		stream.value = await navigator.mediaDevices.getUserMedia({ video: true });
+		// Verwende nextTick, um sicherzustellen, dass das Video-Element im DOM ist, bevor du darauf zugreifst
+		await nextTick();
+
+		const video = videoElement.value instanceof Array ? videoElement.value[0] : videoElement.value;
+
+		if (video) {
+			console.log("videoElement.value", videoElement.value, stream.value);
+			video.srcObject = stream.value; // Kamera-Stream dem Video-Element zuweisen
+			await video.play(); // Sicherstellen, dass das Video abgespielt wird
+			isCameraActive.value = true;
+		}
+	} catch (error) {
+		console.error("Fehler beim Starten der Kamera:", error);
+	}
+};
+
+
+
+// Funktion, um ein Foto aufzunehmen
+const capturePhoto = async () => {
+	const video = videoElement.value instanceof Array ? videoElement.value[0] : videoElement.value;
+
+	if (!video) {
+		console.error("Videoelement ist nicht verfügbar.");
+		return;
+	}
+
+	try {
+		const canvas = document.createElement("canvas");
+		canvas.width = video.videoWidth;
+		canvas.height = video.videoHeight;
+
+		const context = canvas.getContext("2d");
+		context.drawImage(video, 0, 0, canvas.width, canvas.height);
+		imagePreview.value = canvas.toDataURL("image/png"); // Vorschau des aufgenommenen Bildes
+
+		// Verarbeite das aufgenommene Bild mit Tesseract
+		await processImage(imagePreview.value);
+
+		stopCamera();
+	} catch (error) {
+		console.error("Fehler bei der Aufnahme des Fotos:", error);
+	}
+};
+
+
+
+
+
+// Bildverarbeitung mit Tesseract
+const processImage = async (imageSrc) => {
+	snackbar.message = 'Verarbeite Bild...';
+	snackbar.visible = true;
+
+	try {
+		// Tesseract erkennt den Text im Bild
+		const { data: { text } } = await Tesseract.recognize(
+			imageSrc,
+			'deu', // Sprachmodell für Deutsch
+			{
+				logger: (m) => {
+					console.log(m)
+					snackbar.message = 'Verarbeite Bild...' + parseInt(m.progress * 100) + '%';
+					snackbar.visible = true;
+
+
+				}, // Fortschrittsinformationen ausgeben
+			}
+		);
+
+		console.log('Erkannter Text:', text);
+		snackbar.message = 'Extrahiere Text...';
+		snackbar.visible = true;
+
+		// Fügen Sie die Funktion zum Verarbeiten des erkannten Textes hier ein:
+		processRecognizedText(text);
+
+	} catch (error) {
+		console.error('Fehler bei der Bildverarbeitung:', error);
+		snackbar.message = 'Fehler bei der Bildverarbeitung: ' + error.message;
+		snackbar.visible = true;
+	}
+};
+
+// Die Funktion, um den erkannten Text zu verarbeiten
+const processRecognizedText = (text) => {
+	const lines = text.split('\n');
+	let startExtracting = false;
+	let currentIndex = 1; // Index beginnt bei 1
+
+	for (let line of lines) {
+
+		// Start extrahieren, wenn die Zeile "Kegelbild" enthält
+		if (line.includes('Kegelbild') || line.includes('Wurf') || line.includes('Ges')) {
+			startExtracting = true;
+			continue; // Start nach der Kopfzeile
+		}
+
+		// Stop extrahieren, wenn die Zeile "Semitoti" enthält
+		if (line.includes('Semitoti') && currentIndex > 29) {
+			break;
+		}
+
+		if (startExtracting) {
+			snackbar.message = 'Verarbeite Wurf: ' + currentIndex;
+			snackbar.visible = true;
+			// Splitte die Zeile durch Leerzeichen, um die einzelnen Spalten zu erhalten
+			const columns = line.trim().split(/\s+/);
+
+			// Prüfe, ob es mindestens drei Spalten gibt
+			if (columns.length >= 2) {
+				const spalte1 = columns[0]; // Wurf-Spalte
+				const spalte2 = columns[1]; // Zahlen-Spalte
+
+				//erhalte letzten char von spalte1 und gucke ob es eine 0 ist
+				let lastChar = spalte1.slice(-1);
+				if (lastChar === "0" && currentIndex === 1) {
+					continue;
+				}
+
+				if (currentIndex > 9) {
+					lastChar = spalte1.slice(-2);
+				}
+
+				const expectedWurf = currentIndex.toString();
+
+				const intLastChar = parseInt(lastChar);
+				// Wenn der aktuelle Wurf mit dem erwarteten Wurf übereinstimmt
+				if (!isNaN(intLastChar) && intLastChar === parseInt(expectedWurf)) {
+					// Gebe den aktuellen Index und Spalte 2 aus
+					console.log(`Index: ${currentIndex}, Spalte 2: ${spalte2.charAt(0)}`);
+					const score = parseInt(spalte2.charAt(0));
+					if (aktuellerSchritt.value < 5 && !isNaN(score)) {
+						spielerStore.changeScore(aktuellerSchritt.value, parseInt(expectedWurf) - 1, score);
+					}
+					currentIndex++; // Erhöhe den Index
+					continue;
+				} else {
+
+					if (isNaN(intLastChar)) {
+						console.log("NAN lastChar", lastChar);
+						continue;
+					}
+
+					// Gebe den aktuellen Index und Spalte 2 aus
+					console.log(`ELSE Index continue nicht aufnehmen, da wur fnicht erkannt: ${currentIndex}, Spalte 2: ${spalte2.charAt(0)}`);
+					const score = parseInt(spalte2.charAt(0));
+					if (!isNaN(score)) {
+
+						spielerStore.changeScore(aktuellerSchritt.value, parseInt(expectedWurf) - 1, score);
+					}
+					currentIndex++; // Erhöhe den Index
+
+				}
+
+			}
+		}
+	}
+};
+
 </script>
 
 
@@ -436,6 +704,34 @@ function addNumberToLaneScore(number) {
 										</table>
 									</v-col>
 								</v-row>
+
+								<div class="mb-4">
+									<h3>Bildaufnahme oder Hochladen</h3>
+
+									<v-row>
+										<v-col>
+											<!-- Bild hochladen -->
+											<input type="file" accept="image/*" @change="handleImageUpload" />
+										</v-col>
+									</v-row>
+									<v-row>
+										<v-col>
+											<div>
+												<v-btn color="primary" @click="startCamera">Kamera starten</v-btn>
+												<v-btn color="success" v-show="isCameraActive"
+													@click="capturePhoto">Foto
+													aufnehmen</v-btn>
+												<div v-show="isCameraActive">
+													<video ref="videoElement" autoplay playsinline></video>
+													<!-- Video-Vorschau -->
+												</div>
+												<img v-if="imagePreview" :src="imagePreview"
+													alt="Vorschau des aufgenommenen Bildes" />
+											</div>
+										</v-col>
+									</v-row>
+
+								</div>
 
 								<v-expansion-panels class="mt-4">
 									<v-expansion-panel>
@@ -618,5 +914,23 @@ table.auswertung tr td {
 	100% {
 		box-shadow: 0 0 0 0 rgba(255, 0, 0, 0);
 	}
+}
+
+.image-container {
+	position: relative;
+	display: inline-block;
+}
+
+.preview-image {
+	max-width: 100%;
+	display: block;
+}
+
+.selection-box {
+	position: absolute;
+	border: 2px solid red;
+	cursor: move;
+	background-color: rgba(255, 0, 0, 0.1);
+	/* Leichte Transparenz, um die Auswahl besser zu sehen */
 }
 </style>
