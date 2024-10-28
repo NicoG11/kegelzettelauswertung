@@ -117,9 +117,6 @@ export function calculateFines(throws, player) {
 				// Speichere den vorletzten Wurf
 				vorletzterWurf = throws[index - 1];
 
-				console.log(
-					`Index: ${index}, Wurf: ${throwNumber}, Verbleibend: ${pinsLeft}, Vorletzter Wurf: ${vorletzterWurf}`,
-				);
 				// Fehlwurf in Abräumen aber volles Bild
 				if (pinsLeft === 9 && throwNumber === 0) rules["0InVolle"].count++;
 				if (pinsLeft === 9 && throwNumber === 1) rules["1InVolle"].count++;
