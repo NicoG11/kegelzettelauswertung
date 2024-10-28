@@ -117,6 +117,25 @@ export function calculateFines(throws, player) {
 				// Speichere den vorletzten Wurf
 				vorletzterWurf = throws[index - 1];
 
+				console.log(
+					`Index: ${index}, Wurf: ${throwNumber}, Verbleibend: ${pinsLeft}, Vorletzter Wurf: ${vorletzterWurf}`,
+				);
+				// Fehlwurf in Abräumen aber volles Bild
+				if (pinsLeft === 9 && throwNumber === 0) rules["0InVolle"].count++;
+				if (pinsLeft === 9 && throwNumber === 1) rules["1InVolle"].count++;
+				if (pinsLeft === 9 && throwNumber === 2) rules["2InVolle"].count++;
+
+				// Korrektur der Strafen bei bestimmten Bedingungen
+				if (vorletzterWurf === 0 && pinsLeft === 9 && throwNumber === 9) {
+					rules["0InVolle"].count--;
+				}
+				if (vorletzterWurf === 1 && pinsLeft === 8 && throwNumber === 8) {
+					rules["1InVolle"].count--;
+				}
+				if (vorletzterWurf === 2 && pinsLeft === 7 && throwNumber === 7) {
+					rules["2InVolle"].count--;
+				}
+
 				// Verhindern, dass throwNumber größer als pinsLeft ist
 				if (throwNumber > pinsLeft) {
 					// console.warn(
@@ -139,22 +158,6 @@ export function calculateFines(throws, player) {
 				// Fehlwurf im Abräumen
 				if (throwNumber === 0 && pinsLeft < 9) {
 					rules["0InAbraumen"].count++;
-				}
-
-				// Fehlwurf in Abräumen aber volles Bild
-				if (pinsLeft === 9 && throwNumber === 0) rules["0InVolle"].count++;
-				if (pinsLeft === 9 && throwNumber === 1) rules["1InVolle"].count++;
-				if (pinsLeft === 9 && throwNumber === 2) rules["2InVolle"].count++;
-
-				// Korrektur der Strafen bei bestimmten Bedingungen
-				if (vorletzterWurf === 0 && pinsLeft === 9 && throwNumber === 9) {
-					rules["0InVolle"].count--;
-				}
-				if (vorletzterWurf === 1 && pinsLeft === 8 && throwNumber === 8) {
-					rules["1InVolle"].count--;
-				}
-				if (vorletzterWurf === 2 && pinsLeft === 7 && throwNumber === 7) {
-					rules["2InVolle"].count--;
 				}
 
 				// Bild geräumt
