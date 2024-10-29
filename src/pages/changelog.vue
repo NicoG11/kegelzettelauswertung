@@ -1,6 +1,14 @@
 <script setup>
 const items = [
 	{
+		id: 6,
+		color: "primary",
+		icon: "mdi-bug",
+		date: "29.10.2024",
+		title: "Version 1.3.2 - Bugfix",
+		text: 'Im Abräumen werden jetzt auch 0,1,2 korrekt erkannt',
+	},
+	{
 		id: 5,
 		color: "primary",
 		icon: "mdi-clock-time-four-outline",
