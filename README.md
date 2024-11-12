@@ -6,7 +6,7 @@
 - aktuelle Version: 1.3.2
 - [Demo GithubPage](https://nicog11.github.io/kegelzettelauswertung/)
 
-
+-test
 
 TODO to install tesseract tfjs and opencv
 
