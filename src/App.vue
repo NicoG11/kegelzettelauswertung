@@ -271,7 +271,15 @@ function loadSavedGames() {
 function loadData(selectedSpieltag) {
 	spieltag.value = selectedSpieltag;
 	const daten = JSON.parse(localStorage.getItem(`spieltag_${selectedSpieltag}`));
-	spielerStore.spielerListe = daten.spielerListe;
+	spielerStore.$patch({
+		spielerListe: daten.spielerListe,
+	});
+	// selectedPlayer setzen
+	if (spielerStore.spielerListe.length > 0) {
+		spielerStore.setSelectedPlayer(spielerStore.spielerListe[0]);
+	} else {
+		spielerStore.selectedPlayer = null;
+	}
 	closeLoadDialog();
 	// Snackbar anzeigen
 	snackbar.message = `Spieltag ${selectedSpieltag} wurde erfolgreich geladen.`;
@@ -309,7 +317,15 @@ function handleFileUpload(event) {
 	reader.onload = (e) => {
 		try {
 			const daten = JSON.parse(e.target.result);
-			spielerStore.spielerListe = daten.spielerListe;
+			spielerStore.$patch({
+				spielerListe: daten.spielerListe,
+			});
+			// selectedPlayer setzen
+			if (spielerStore.spielerListe.length > 0) {
+				spielerStore.setSelectedPlayer(spielerStore.spielerListe[0]);
+			} else {
+				spielerStore.selectedPlayer = null;
+			}
 			spieltag.value = daten.spieltag || '';
 			snackbar.message = 'Daten wurden erfolgreich importiert.';
 			snackbar.visible = true;

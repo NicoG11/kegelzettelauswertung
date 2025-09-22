@@ -39,11 +39,11 @@ export const useSpielerStore = defineStore("spielerStore", {
 	getters: {},
 	actions: {
 		spielerHinzufuegen(name) {
-			const length = this.spielerListe.length;
+			const highestId = Math.max(...this.spielerListe.map(s => s.id), 0);
 			this.spielerListe.push({
 				bahnen: { 1: [], 2: [], 3: [], 4: [] },
 				name,
-				id: length + 1,
+				id: highestId + 1,
 			});
 		},
 

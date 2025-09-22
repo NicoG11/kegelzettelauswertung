@@ -190,6 +190,54 @@ export function getBahnGesamtSumme(rules, what = "spieler") {
 	return sum;
 }
 
+export function calculateLane9ers(throws) {
+	if (!throws || throws.length === 0) {
+		return {};
+	}
+
+	let count9ers = 0;
+	let nineOn29th = 0;
+
+	throws.forEach((throwNumber, index) => {
+		throwNumber = Number.parseInt(throwNumber, 10);
+
+		if (throwNumber === 9) {
+			count9ers++;
+
+			// Prüfe ob dies der 29. Wurf ist (Index 28)
+			if (index === 28) {
+				nineOn29th++;
+			}
+		}
+	});
+
+	const result = {};
+
+	if (count9ers > 0) {
+		result.lane9ers = {
+			count: count9ers,
+			cost: 0,
+			total: 0,
+			name: "Anzahl 9er",
+			show: true,
+			info: true
+		};
+	}
+
+	if (nineOn29th > 0) {
+		result.nineOn29th = {
+			count: nineOn29th,
+			cost: 0.5,
+			total: nineOn29th * 0.5,
+			name: "9 auf 29. Wurf",
+			show: true,
+			other: true
+		};
+	}
+
+	return result;
+}
+
 export function calculateCrossLane9ers(player) {
 	const allThrows = [];
 

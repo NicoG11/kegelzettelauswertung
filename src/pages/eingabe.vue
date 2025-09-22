@@ -4,6 +4,7 @@ import {
 	germanCurrencyFormat,
 	getBahnGesamtSumme,
 	calculateCrossLane9ers,
+	calculateLane9ers,
 } from "@/services/rules";
 import { useSpielerStore } from "@/stores/spielerStore";
 
@@ -290,7 +291,9 @@ const rules = {
 const finesPerBahn = computed(() => {
 	const result = {};
 	for (let n = 1; n <= anzahlBahnen.value; n++) {
-		result[n] = calculateFines(spielerStore.selectedPlayer?.bahnen[n]);
+		const fines = calculateFines(spielerStore.selectedPlayer?.bahnen[n]);
+		const lane9ers = calculateLane9ers(spielerStore.selectedPlayer?.bahnen[n]);
+		result[n] = { ...fines, ...lane9ers };
 	}
 	return result;
 });
@@ -509,11 +512,11 @@ function addNumberToLaneScore(number) {
 												</tfoot>
 												<tbody>
 													<tr v-for="(rule, index) in finesPerBahn[n]"
-														:key="rule.name + index">
+														:key="rule.name + index" :class="{ 'text-blue-darken-1': rule.info }">
 														<td>
 															<span class="text-subtitle-2">{{ rule.name }}</span>
-															<br />
-															<span class="text-caption">{{
+															<br v-if="!rule.info" />
+															<span v-if="!rule.info" class="text-caption">{{
 																germanCurrencyFormat(rule.cost) }}</span>
 														</td>
 														<td class="text-right">{{ rule.count }}x</td>
@@ -562,11 +565,11 @@ function addNumberToLaneScore(number) {
 												</tr>
 											</tfoot>
 											<tbody>
-												<tr v-for="(rule, index) in finesPerBahn[n]" :key="rule.name + index">
+												<tr v-for="(rule, index) in finesPerBahn[n]" :key="rule.name + index" :class="{ 'text-blue-darken-1': rule.info }">
 													<td>
 														<span class="text-subtitle-2">{{ rule.name }}</span>
-														<br />
-														<span class="text-caption">{{ germanCurrencyFormat(rule.cost)
+														<br v-if="!rule.info" />
+														<span v-if="!rule.info" class="text-caption">{{ germanCurrencyFormat(rule.cost)
 															}}</span>
 													</td>
 													<td class="text-right">{{ rule.count }}x</td>
