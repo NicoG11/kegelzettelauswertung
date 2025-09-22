@@ -148,3 +148,5 @@ dist
 
 
 localhost*.pem
+*.md
+.claude

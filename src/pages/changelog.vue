@@ -1,6 +1,14 @@
 <script setup>
 const items = [
 	{
+		id: 7,
+		color: "primary",
+		icon: "mdi-bug",
+		date: "22.09.2025",
+		title: "Version 1.3.3 - Bugfix",
+		text: '9er Bahnübergreifend werden jetzt gezählt',
+	},
+	{
 		id: 6,
 		color: "primary",
 		icon: "mdi-bug",

@@ -61,20 +61,6 @@ export function calculateFines(throws, player) {
 			name: ">= 160 Bahn",
 			other: true,
 		},
-		consecutive9: {
-			count: 0,
-			cost: 1,
-			total: 0,
-			name: "Drei 9er + folgende",
-			other: true,
-		},
-		"9In29th": {
-			count: 0,
-			cost: 0.5,
-			total: 0,
-			name: "9 auf den 29 Wurf",
-			other: true,
-		},
 		cleanedImage: {
 			count: 0,
 			cost: 0,
@@ -84,7 +70,6 @@ export function calculateFines(throws, player) {
 		},
 	};
 
-	let consecutive9Count = 0;
 	let totalVolle = 0;
 	let totalAbraumen = 0;
 
@@ -169,14 +154,6 @@ export function calculateFines(throws, player) {
 				}
 			}
 
-			// Regel für 9er
-			if (throwNumber === 9) {
-				consecutive9Count++;
-				if (consecutive9Count >= 3) rules["consecutive9"].count++;
-				if (index === 28) rules["9In29th"].count++;
-			} else {
-				consecutive9Count = 0;
-			}
 		});
 	}
 
@@ -211,4 +188,104 @@ export function getBahnGesamtSumme(rules, what = "spieler") {
 		}
 	}
 	return sum;
+}
+
+export function calculateLane9ers(throws) {
+	if (!throws || throws.length === 0) {
+		return {};
+	}
+
+	let count9ers = 0;
+	let nineOn29th = 0;
+
+	throws.forEach((throwNumber, index) => {
+		throwNumber = Number.parseInt(throwNumber, 10);
+
+		if (throwNumber === 9) {
+			count9ers++;
+
+			// Prüfe ob dies der 29. Wurf ist (Index 28)
+			if (index === 28) {
+				nineOn29th++;
+			}
+		}
+	});
+
+	const result = {};
+
+	if (count9ers > 0) {
+		result.lane9ers = {
+			count: count9ers,
+			cost: 0,
+			total: 0,
+			name: "Anzahl 9er",
+			show: true,
+			info: true
+		};
+	}
+
+	if (nineOn29th > 0) {
+		result.nineOn29th = {
+			count: nineOn29th,
+			cost: 0.5,
+			total: nineOn29th * 0.5,
+			name: "9 auf 29. Wurf",
+			show: true,
+			other: true
+		};
+	}
+
+	return result;
+}
+
+export function calculateCrossLane9ers(player) {
+	const allThrows = [];
+
+	// Sammle alle Würfe von allen 4 Bahnen in chronologischer Reihenfolge
+	for (let lane = 1; lane <= 4; lane++) {
+		if (player.bahnen[lane] && player.bahnen[lane].length > 0) {
+			allThrows.push(...player.bahnen[lane]);
+		}
+	}
+
+	let consecutive9Count = 0;
+	let consecutive9Bonuses = 0;
+	let nineOn29th = 0;
+
+	allThrows.forEach((throwNumber, globalIndex) => {
+		throwNumber = Number.parseInt(throwNumber, 10);
+
+		if (throwNumber === 9) {
+			consecutive9Count++;
+			// Ab dem 3. aufeinanderfolgenden 9er wird jeder weitere 9er belohnt
+			if (consecutive9Count >= 3) {
+				consecutive9Bonuses++;
+			}
+
+			// Prüfe ob dies der 29. Wurf einer Bahn ist (Index 28 innerhalb jeder 30er-Gruppe)
+			const indexInLane = globalIndex % 30;
+			if (indexInLane === 28) {
+				nineOn29th++;
+			}
+		} else {
+			consecutive9Count = 0;
+		}
+	});
+
+	return {
+		consecutive9: {
+			count: consecutive9Bonuses,
+			cost: 1,
+			total: consecutive9Bonuses * 1,
+			name: "Drei 9er + folgende",
+			other: true
+		},
+		"9In29th": {
+			count: nineOn29th,
+			cost: 0.5,
+			total: nineOn29th * 0.5,
+			name: "9 auf den 29 Wurf",
+			other: true
+		}
+	};
 }
