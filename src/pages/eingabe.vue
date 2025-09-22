@@ -319,6 +319,37 @@ const crossLane9ers = computed(() => {
 	return calculateCrossLane9ers(spielerStore.selectedPlayer);
 });
 
+const gesamtStatistik = computed(() => {
+	if (!spielerStore.selectedPlayer) return {};
+
+	const aggregatedRules = {};
+
+	// Sammle alle Regeln von allen Bahnen
+	for (let n = 1; n <= anzahlBahnen.value; n++) {
+		const laneRules = finesPerBahn.value[n];
+
+		for (const ruleKey in laneRules) {
+			const rule = laneRules[ruleKey];
+
+			if (!aggregatedRules[ruleKey]) {
+				aggregatedRules[ruleKey] = {
+					name: rule.name,
+					cost: rule.cost,
+					count: 0,
+					total: 0,
+					other: rule.other || false,
+					info: rule.info || false
+				};
+			}
+
+			aggregatedRules[ruleKey].count += rule.count;
+			aggregatedRules[ruleKey].total += rule.total;
+		}
+	}
+
+	return aggregatedRules;
+});
+
 const gesamtAuswertung = computed(() => {
 	if (!spielerStore.selectedPlayer) {
 		return { regular: 0, other: 0, bonusGiven: 0, total: 0 };
@@ -538,19 +569,20 @@ function addNumberToLaneScore(number) {
 					<v-stepper-window-item :value="anzahlBahnen + 1">
 						<!-- Berechnungen -->
 						<h4>Auswertungen</h4>
-						<v-card v-for="(n, index) in anzahlBahnen" :key="`bahn-auswerten-content-${n}`">
-							<v-card-text class="pa-0">
-								<!-- Ziffernblatt eingeben -->
-								<v-divider class="my-4"></v-divider>
-								<v-row>
-									<v-col cols="12">
+
+						<!-- 2x2 Grid für Bahnauswertungen -->
+						<v-row>
+							<!-- Erste Zeile: Bahn 1 und 2 -->
+							<v-col cols="6" v-for="n in [1, 2]" :key="`bahn-row1-${n}`">
+								<v-card>
+									<v-card-text class="pa-2">
 										<h4 class="text-subtitle my-1">Auswertung der Bahn {{ n }}</h4>
 										<table class="auswertung">
 											<thead>
 												<tr>
 													<th class="text-left">Regel + Preis</th>
 													<th class="text-right">Anzahl</th>
-													<th class="text-right px-4">Summe</th>
+													<th class="text-right px-2">Summe</th>
 													<th class="text-right">Alle</th>
 												</tr>
 											</thead>
@@ -558,7 +590,7 @@ function addNumberToLaneScore(number) {
 												<tr>
 													<td class="text-left">Gesamt</td>
 													<td></td>
-													<td class="text-right px-4 text-subtitle-2">{{
+													<td class="text-right px-2 text-subtitle-2">{{
 														germanCurrencyFormat(gesamtSummePerBahn[n].regular) }}</td>
 													<td class="text-right text-caption">{{
 														germanCurrencyFormat(gesamtSummePerBahn[n].other) }}</td>
@@ -569,11 +601,10 @@ function addNumberToLaneScore(number) {
 													<td>
 														<span class="text-subtitle-2">{{ rule.name }}</span>
 														<br v-if="!rule.info" />
-														<span v-if="!rule.info" class="text-caption">{{ germanCurrencyFormat(rule.cost)
-															}}</span>
+														<span v-if="!rule.info" class="text-caption">{{ germanCurrencyFormat(rule.cost) }}</span>
 													</td>
 													<td class="text-right">{{ rule.count }}x</td>
-													<td class="text-right px-4">{{ rule.other ? '' :
+													<td class="text-right px-2">{{ rule.other ? '' :
 														germanCurrencyFormat(rule.total) }}
 													</td>
 													<td class="text-right text-caption">{{ rule.other ?
@@ -582,10 +613,57 @@ function addNumberToLaneScore(number) {
 												</tr>
 											</tbody>
 										</table>
-									</v-col>
-								</v-row>
-							</v-card-text>
-						</v-card>
+									</v-card-text>
+								</v-card>
+							</v-col>
+						</v-row>
+
+						<v-row class="mt-2">
+							<!-- Zweite Zeile: Bahn 3 und 4 -->
+							<v-col cols="6" v-for="n in [3, 4]" :key="`bahn-row2-${n}`">
+								<v-card>
+									<v-card-text class="pa-2">
+										<h4 class="text-subtitle my-1">Auswertung der Bahn {{ n }}</h4>
+										<table class="auswertung">
+											<thead>
+												<tr>
+													<th class="text-left">Regel + Preis</th>
+													<th class="text-right">Anzahl</th>
+													<th class="text-right px-2">Summe</th>
+													<th class="text-right">Alle</th>
+												</tr>
+											</thead>
+											<tfoot>
+												<tr>
+													<td class="text-left">Gesamt</td>
+													<td></td>
+													<td class="text-right px-2 text-subtitle-2">{{
+														germanCurrencyFormat(gesamtSummePerBahn[n].regular) }}</td>
+													<td class="text-right text-caption">{{
+														germanCurrencyFormat(gesamtSummePerBahn[n].other) }}</td>
+												</tr>
+											</tfoot>
+											<tbody>
+												<tr v-for="(rule, index) in finesPerBahn[n]" :key="rule.name + index" :class="{ 'text-blue-darken-1': rule.info }">
+													<td>
+														<span class="text-subtitle-2">{{ rule.name }}</span>
+														<br v-if="!rule.info" />
+														<span v-if="!rule.info" class="text-caption">{{ germanCurrencyFormat(rule.cost) }}</span>
+													</td>
+													<td class="text-right">{{ rule.count }}x</td>
+													<td class="text-right px-2">{{ rule.other ? '' :
+														germanCurrencyFormat(rule.total) }}
+													</td>
+													<td class="text-right text-caption">{{ rule.other ?
+														germanCurrencyFormat(rule.total)
+														: '' }}</td>
+												</tr>
+											</tbody>
+										</table>
+									</v-card-text>
+								</v-card>
+							</v-col>
+						</v-row>
 
 						<!-- Bahnübergreifende Auswertung -->
 						<v-card class="mt-4">
@@ -609,6 +687,40 @@ function addNumberToLaneScore(number) {
 														<span class="text-subtitle-2">{{ rule.name }}</span>
 														<br />
 														<span class="text-caption">{{ germanCurrencyFormat(rule.cost) }}</span>
+													</td>
+													<td class="text-right">{{ rule.count }}x</td>
+													<td class="text-right px-4">{{ rule.other ? '' : germanCurrencyFormat(rule.total) }}</td>
+													<td class="text-right text-caption">{{ rule.other ? germanCurrencyFormat(rule.total) : '' }}</td>
+												</tr>
+											</tbody>
+										</table>
+									</v-col>
+								</v-row>
+							</v-card-text>
+						</v-card>
+
+						<!-- Zusammenfassung aller Bahnen -->
+						<v-card class="mt-4">
+							<v-card-text class="pa-0">
+								<v-divider class="my-4"></v-divider>
+								<v-row>
+									<v-col cols="12">
+										<h4 class="text-subtitle my-1">Zusammenfassung aller Bahnen</h4>
+										<table class="auswertung">
+											<thead>
+												<tr>
+													<th class="text-left">Regel + Preis</th>
+													<th class="text-right">Anzahl</th>
+													<th class="text-right px-4">Summe</th>
+													<th class="text-right">Alle</th>
+												</tr>
+											</thead>
+											<tbody>
+												<tr v-for="(rule, key) in gesamtStatistik" :key="key" :class="{ 'text-blue-darken-1': rule.info }">
+													<td>
+														<span class="text-subtitle-2">{{ rule.name }}</span>
+														<br v-if="!rule.info" />
+														<span v-if="!rule.info" class="text-caption">{{ germanCurrencyFormat(rule.cost) }}</span>
 													</td>
 													<td class="text-right">{{ rule.count }}x</td>
 													<td class="text-right px-4">{{ rule.other ? '' : germanCurrencyFormat(rule.total) }}</td>
