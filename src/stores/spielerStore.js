@@ -2,6 +2,7 @@ import {
 	calculateFines,
 	germanCurrencyFormat,
 	getBahnGesamtSumme,
+	calculateCrossLane9ers,
 } from "@/services/rules";
 import { defineStore } from "pinia";
 
@@ -11,7 +12,6 @@ const MaxToPay = 15;
 export const useSpielerStore = defineStore("spielerStore", {
 	state: () => ({
 		spielerListe: [
-			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Nico", id: 1 },
 			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Jerry", id: 2 },
 			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Max", id: 3 },
 			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Robi", id: 4 },
@@ -19,6 +19,8 @@ export const useSpielerStore = defineStore("spielerStore", {
 			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "KT", id: 6 },
 			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Philipp", id: 7 },
 			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Lucas", id: 8 },
+			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Lucas (Bohle)", id: 9 },
+			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Nico", id: 1 },
 		],
 
 		dinge: [
@@ -51,7 +53,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 
 		addScore(lane, score) {
 			if (this.selectedPlayer) {
-				this.selectedPlayer.bahnen[lane].push(Number.parseInt(score));
+				this.selectedPlayer.bahnen[lane].push(Number.parseInt(score, 10));
 			}
 		},
 
@@ -62,7 +64,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 		},
 		changeScore(lane, index, newValue) {
 			if (this.selectedPlayer) {
-				this.selectedPlayer.bahnen[lane][index] = Number.parseInt(newValue);
+				this.selectedPlayer.bahnen[lane][index] = Number.parseInt(newValue, 10);
 			}
 		},
 
@@ -170,6 +172,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 				}
 				return sum;
 			}
+			return 0;
 		},
 
 		getSumAbr(lane) {
@@ -185,6 +188,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 				}
 				return sum;
 			}
+			return 0;
 		},
 
 		fehlwurfSum(spieler) {
@@ -236,12 +240,16 @@ export const useSpielerStore = defineStore("spielerStore", {
 		getToPayOther(player) {
 			if (player) {
 				let sum = 0;
+				// Summiere "other" Strafen aus allen Bahnen
 				for (let lane = 1; lane <= 4; lane++) {
 					sum += getBahnGesamtSumme(
 						calculateFines(player?.bahnen[lane], player),
 						"other",
 					);
 				}
+				// Füge bahnübergreifende 9er-Boni hinzu
+				const crossLane9ers = calculateCrossLane9ers(player);
+				sum += crossLane9ers.consecutive9.total + crossLane9ers["9In29th"].total;
 				return sum;
 			}
 

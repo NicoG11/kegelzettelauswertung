@@ -1,6 +1,8 @@
 <script setup>
 import {useSpielerStore} from '@/stores/spielerStore';
 import {ref} from 'vue';
+import Playerlist from '@/components/Playerlist.vue';
+import Dinge from '@/components/Dinge.vue';
 
 const spielerStore = useSpielerStore();
 
@@ -19,7 +21,7 @@ function spielerHinzufuegen() {
     <v-container class="fill-height">
         <v-responsive class="fill-height">
             <v-tabs v-model="tab" bg-color="white" selected-class="text-green-darken-2 font-weight-black" grow>
-                <v-tab vlaue="strafe" class="text-green">Strafen</v-tab>
+                <v-tab value="strafe" class="text-green">Strafen</v-tab>
                 <v-tab value="dinge" class="text-green">wer bekommt was</v-tab>
             </v-tabs>
 
