@@ -570,10 +570,10 @@ function addNumberToLaneScore(number) {
 						<!-- Berechnungen -->
 						<h4>Auswertungen</h4>
 
-						<!-- 2x2 Grid für Bahnauswertungen -->
+						<!-- Grid für Bahnauswertungen (single column on mobile) -->
 						<v-row>
-							<!-- Erste Zeile: Bahn 1 und 2 -->
-							<v-col cols="6" v-for="n in [1, 2]" :key="`bahn-row1-${n}`">
+							<!-- Bahn 1 und 2 -->
+							<v-col cols="12" md="6" v-for="n in [1, 2]" :key="`bahn-row1-${n}`">
 								<v-card>
 									<v-card-text class="pa-2">
 										<h4 class="text-subtitle my-1">Auswertung der Bahn {{ n }}</h4>
@@ -616,11 +616,8 @@ function addNumberToLaneScore(number) {
 									</v-card-text>
 								</v-card>
 							</v-col>
-						</v-row>
-
-						<v-row class="mt-2">
-							<!-- Zweite Zeile: Bahn 3 und 4 -->
-							<v-col cols="6" v-for="n in [3, 4]" :key="`bahn-row2-${n}`">
+							<!-- Bahn 3 und 4 -->
+							<v-col cols="12" md="6" v-for="n in [3, 4]" :key="`bahn-row2-${n}`">
 								<v-card>
 									<v-card-text class="pa-2">
 										<h4 class="text-subtitle my-1">Auswertung der Bahn {{ n }}</h4>
