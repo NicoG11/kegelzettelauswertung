@@ -1,6 +1,14 @@
 <script setup>
 const items = [
 	{
+		id: 15,
+		color: "primary",
+		icon: "mdi-microphone-check",
+		date: "16.10.2026",
+		title: "Version 1.5.2 - Spracheingabe korrigiert",
+		text: 'Erkannte Zahlen werden der Bahn zugeordnet, auf der die Spracheingabe gestartet wurde. Das manuelle Korrigieren eines Wurfs ändert dieses Ziel nicht mehr. Beim Bahnwechsel und nach 30 Würfen wird die Aufnahme beendet. Verspätete Erkennungsergebnisse einer beendeten Aufnahme werden ignoriert.',
+	},
+	{
 		id: 14,
 		color: "primary",
 		icon: "mdi-update",

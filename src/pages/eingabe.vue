@@ -11,10 +11,15 @@ import { useSpielerStore } from "@/stores/spielerStore";
 import { computed, onMounted, onUnmounted, ref, watch, nextTick, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { createModel } from 'vosk-browser';
+import { addSpokenScore } from '@/services/speechScores';
 
 
 
 const isRecording = ref(false);
+const isStartingRecognition = ref(false);
+const speechLane = ref(null);
+let recognitionRequest = 0;
+let disposed = false;
 
 
 let recognizer = null;
@@ -36,7 +41,11 @@ const snackbar = reactive({
 
 
 
-const startRecognition = async () => {
+const startRecognition = async (lane) => {
+	const request = ++recognitionRequest;
+	const playerId = spielerStore.selectedPlayer?.id;
+	isStartingRecognition.value = true;
+	speechLane.value = lane;
 	try {
 		snackbar.message = 'Lade Spracherkennungsmodell...';
 		snackbar.visible = true;
@@ -46,6 +55,8 @@ const startRecognition = async () => {
 			// Lade das Modell
 			loadedModel = await createModel(modelUrl);
 		}
+		if (disposed) { loadedModel.terminate(); loadedModel = null; return; }
+		if (request !== recognitionRequest) return;
 
 
 		const sampleRate = 48000;
@@ -63,14 +74,15 @@ const startRecognition = async () => {
 			snackbar.visible = true;
 			return;
 		}
+		const activeRecognizer = recognizer;
 		recognizer.setWords(true);
 
 		snackbar.message = 'Erstelle Recognizermethoden...';
 		snackbar.visible = true;
 
 		recognizer.on('result', (message) => {
-			console.log(`Result: ${message.result.text}`);
-			processResult(message.result.text);
+			if (request !== recognitionRequest || recognizer !== activeRecognizer || spielerStore.selectedPlayer?.id !== playerId) return;
+			processResult(message.result.text, lane);
 		});
 		recognizer.on('partialresult', (message) => {
 			console.log(`Partial result: ${message.result.partial}`);
@@ -87,13 +99,19 @@ const startRecognition = async () => {
 		snackbar.visible = true;
 
 		// Zugriff auf das Mikrofon
-		mediaStream = await navigator.mediaDevices.getUserMedia({
+		const stream = await navigator.mediaDevices.getUserMedia({
 			video: false,
 			audio: {
 				echoCancellation: true,
 				noiseSuppression: true,
 			},
 		});
+
+		if (request !== recognitionRequest || disposed) {
+			stream.getTracks().forEach(track => track.stop());
+			return;
+		}
+		mediaStream = stream;
 
 		// Erstelle einen Audio-Kontext
 		audioContext = new (window.AudioContext || window.webkitAudioContext)();
@@ -104,7 +122,7 @@ const startRecognition = async () => {
 
 		recognizerNode.onaudioprocess = (event) => {
 			// Übergib das AudioBuffer-Objekt direkt
-			recognizer.acceptWaveform(event.inputBuffer);
+			if (request === recognitionRequest && recognizer === activeRecognizer) activeRecognizer.acceptWaveform(event.inputBuffer);
 		};
 
 		source.connect(recognizerNode);
@@ -114,16 +132,22 @@ const startRecognition = async () => {
 		snackbar.message = 'Spracherkennung erfolgreich gestartet. Bitte sprechen Sie die Zahlen deutlich aus. Und machen Sie dazischen eine kleine Pause.';
 		snackbar.visible = true;
 	} catch (error) {
+		if (request !== recognitionRequest || disposed) return;
 		// console.error('Fehler bei der Initialisierung der Spracherkennung:', error);
 		snackbar.message = 'Fehler bei der Initialisierung der Spracherkennung. ' + error;
 		snackbar.visible = true;
 		stopRecognition();
+	} finally {
+		if (request === recognitionRequest) isStartingRecognition.value = false;
 	}
 };
 
 
 // Sprachaufnahme stoppen
 const stopRecognition = () => {
+	recognitionRequest++;
+	isStartingRecognition.value = false;
+	speechLane.value = null;
 	try {
 		if (recognizerNode) {
 			recognizerNode.disconnect();
@@ -140,6 +164,7 @@ const stopRecognition = () => {
 			mediaStream = null; // Setze auf null, um sicherzustellen, dass der Garbage Collector es aufräumt
 		}
 
+		recognizer?.remove();
 		recognizer = null; // Recognizer ebenfalls freigeben
 		isRecording.value = false;
 		snackbar.message = 'Spracherkennung beendet.';
@@ -151,23 +176,24 @@ const stopRecognition = () => {
 };
 
 const toggleSpeechRecognition = async (lane) => {
-
-	if (isRecording.value) {
+	if (isRecording.value || isStartingRecognition.value) {
 		stopRecognition();
-	} else {
-		snackbar.message = 'Starte Spracherkennung...';
-		snackbar.visible = true;
-		await startRecognition();
-
+	} else if (spielerStore.selectedPlayer && lane >= 1 && lane <= 4) {
+		if (spielerStore.selectedPlayer.bahnen[lane].length >= 30) {
+			snackbar.message = `Bahn ${lane} enthält bereits 30 Würfe.`;
+			snackbar.visible = true;
+			return;
+		}
+		await startRecognition(lane);
 	}
 };
 
-const processResult = (text) => {
+const processResult = (text, lane) => {
 	if (text && text.length > 0) {
 		console.log('Erkannt:', text);
 
 		// Hier kannst du das Ergebnis weiter verarbeiten
-		processSpeechResult(text);
+		processSpeechResult(text, lane);
 	}
 };
 
@@ -215,15 +241,16 @@ const numberMap = {
 	// Weitere Zahlen hinzufügen
 };
 
-const processSpeechResult = (text) => {
+const processSpeechResult = (text, lane) => {
 	const words = text.toLowerCase().split(' ');
 	words.forEach((word) => {
+		if (!isRecording.value) return;
 		console.log('Erkanntes Wort:', word);
 		const number = numberMap[word];
 		if (number !== undefined) {
 			console.log('Erkannte Zahl:', number);
 			// Füge die Zahl in deine Anwendung ein
-			addNumberToLaneScore(number);
+			addNumberToLaneScore(number, lane);
 		}
 	});
 };
@@ -262,9 +289,15 @@ onMounted(async () => {
 
 });
 
-onUnmounted(() => {
+watch(aktuellerSchritt, (step) => {
+	if ((isRecording.value || isStartingRecognition.value) && step !== speechLane.value) stopRecognition();
+});
 
+onUnmounted(() => {
+	disposed = true;
 	stopRecognition();
+	loadedModel?.terminate();
+	loadedModel = null;
 });
 
 const changeInputValue = (lane, index) => {
@@ -376,20 +409,15 @@ const gesamtAuswertung = computed(() => {
 	};
 });
 
-function addNumberToLaneScore(number) {
-
-	if (typeof number !== 'number' || number < 0 || number > 9) return;
-
-	if (
-		spielerStore.selectedPlayer &&
-		spielerStore.selectedPlayer.bahnen[currentLane.value] &&
-		spielerStore.selectedPlayer.bahnen[currentLane.value].length < 30
-	) {
-		spielerStore.addScore(currentLane.value, number);
-	} else {
-		snackbar.message = 'Bedingungen für das Hinzufügen der Zahl sind nicht erfüllt.';
-		snackbar.visible = true;
-	}
+function addNumberToLaneScore(number, lane) {
+	const result = addSpokenScore(spielerStore, lane, number);
+	if (result === 'added' && spielerStore.selectedPlayer.bahnen[lane].length < 30) return;
+	if (result === 'invalid-number') return;
+	stopRecognition();
+	snackbar.message = result === 'full' || result === 'added'
+		? `Bahn ${lane} ist vollständig (30 Würfe).`
+		: result === 'no-player' ? 'Bitte zuerst einen Spieler auswählen.' : 'Bitte zuerst eine Bahn auswählen.';
+	snackbar.visible = true;
 }
 
 
@@ -460,7 +488,7 @@ function addNumberToLaneScore(number) {
 										<v-divider class="my-4"></v-divider>
 										<div class="entry-controls">
 											<v-btn variant="tonal" color="primary" @click="toggleSpeechRecognition(n)"
-												:prepend-icon="isRecording ? 'mdi-stop' : 'mdi-microphone-outline'" :class="{ recording: isRecording }">
+												:loading="isStartingRecognition" :prepend-icon="isRecording ? 'mdi-stop' : 'mdi-microphone-outline'" :class="{ recording: isRecording }">
 												{{ isRecording ? 'Aufnahme stoppen' : 'Spracheingabe' }}</v-btn>
 											<v-btn variant="text" color="error" :disabled="!spielerStore.selectedPlayer?.bahnen[n].length"
 												@click="spielerStore.clearLane(n)">Bahn {{ n }} löschen</v-btn>
