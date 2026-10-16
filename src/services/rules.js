@@ -1,3 +1,8 @@
+// Own fines are waived from 600 pins; shares from other players still apply.
+export function calculatePayableFine(ownFine, otherFine, totalPins, maximum = 15) {
+	return Math.min((totalPins >= 600 ? 0 : ownFine) + otherFine, maximum);
+}
+
 export function germanCurrencyFormat(
 	number = null,
 	currency = {

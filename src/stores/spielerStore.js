@@ -1,27 +1,26 @@
 import {
 	calculateFines,
+	calculatePayableFine,
 	germanCurrencyFormat,
 	getBahnGesamtSumme,
 	calculateCrossLane9ers,
 } from "@/services/rules";
 import { defineStore } from "pinia";
+import { currentSeason } from "@/services/savedGames";
+import { normalizePlayerName } from "@/services/playerCatalog";
 
 // deckelung bei welcher summe
 const MaxToPay = 15;
 
 export const useSpielerStore = defineStore("spielerStore", {
 	state: () => ({
-		spielerListe: [
-			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Jerry", id: 2 },
-			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Max", id: 3 },
-			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Robi", id: 4 },
-			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Kaschi", id: 5 },
-			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "KT", id: 6 },
-			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Philipp", id: 7 },
-			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Lucas", id: 8 },
-			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Lucas (Bohle)", id: 9 },
-			{ bahnen: { 1: [], 2: [], 3: [], 4: [] }, name: "Nico", id: 1 },
-		],
+		spielerListe: [],
+		sessionStarted: false,
+		spieltag: "",
+		saison: currentSeason(),
+		savedGameKey: null,
+		autoSaveEnabled: false,
+		autoSaveStatus: "",
 
 		dinge: [
 			"besterSpieler",
@@ -38,7 +37,18 @@ export const useSpielerStore = defineStore("spielerStore", {
 	}),
 	getters: {},
 	actions: {
+		startSession(names) {
+			this.spieltag = this.spieltag.trim();
+			this.saison = this.saison.trim();
+			this.savedGameKey = null;
+			this.spielerListe = [];
+			this.selectedPlayer = null;
+			for (const name of names) this.spielerHinzufuegen(name);
+			this.sessionStarted = this.spielerListe.length > 0;
+		},
 		spielerHinzufuegen(name) {
+			name = normalizePlayerName(name);
+			if (!name || this.spielerListe.some(s => s.name.toLocaleLowerCase('de') === name.toLocaleLowerCase('de'))) return;
 			const highestId = Math.max(...this.spielerListe.map(s => s.id), 0);
 			this.spielerListe.push({
 				bahnen: { 1: [], 2: [], 3: [], 4: [] },
@@ -273,15 +283,13 @@ export const useSpielerStore = defineStore("spielerStore", {
 		},
 
 		getGesamtToPay(player, withCurrency = true) {
-			let sum = 0;
-			if (player) {
-				sum += this.getToPay(player);
-				sum += this.getFineFromOtherPlayers(player);
-			}
+			const sum = player ? calculatePayableFine(
+				this.getToPay(player),
+				this.getFineFromOtherPlayers(player),
+				this.getPlayerSum(player),
+				MaxToPay,
+			) : 0;
 
-			if (sum > MaxToPay) {
-				sum = MaxToPay;
-			}
 			if (withCurrency) {
 				return `${germanCurrencyFormat(sum)} ${sum >= MaxToPay ? " - Höchstbetrag" : ""}`;
 			}
@@ -308,6 +316,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 
 			spielerArray.sort((a, b) => b.number - a.number);
 
+			if (!spielerArray.length) return groesteStrafe;
 			groesteStrafe.sum = germanCurrencyFormat(spielerArray[0].number);
 			groesteStrafe.number = spielerArray[0].number;
 			groesteStrafe.player = spielerArray[0].spieler;
@@ -315,7 +324,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 			// check if the first numer existst twice so we need to check who has more played
 			if (
 				spielerArray[0].number > 0 &&
-				spielerArray[0].number === spielerArray[1].number
+				spielerArray[0].number === spielerArray[1]?.number
 			) {
 				const playerSum = this.getPlayerSum(spielerArray[0].spieler);
 				const playerSum2 = this.getPlayerSum(spielerArray[1].spieler);
@@ -591,6 +600,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 
 			spielerErgebnisArray?.sort((a, b) => b.number - a.number);
 
+			if (spielerErgebnisArray.length < 2) return zweiterPlatz;
 			zweiterPlatz.number = spielerErgebnisArray[1].number;
 			zweiterPlatz.player = spielerErgebnisArray[1].spieler;
 
@@ -634,7 +644,7 @@ export const useSpielerStore = defineStore("spielerStore", {
 					}
 				}
 			} else if (
-				spielerErgebnisArray[2].number > 0 &&
+				spielerErgebnisArray[2]?.number > 0 &&
 				spielerErgebnisArray[1].number === spielerErgebnisArray[2].number
 			) {
 				// zweiter platz = dritter platz check all

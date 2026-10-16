@@ -1,67 +1,33 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { computed } from 'vue';
 import { useSpielerStore } from '@/stores/spielerStore';
 import { useRouter } from 'vue-router';
-
+import { germanCurrencyFormat } from '@/services/rules';
 const spielerStore = useSpielerStore();
-
 const router = useRouter();
-
-function geheZuSeite(spieler, path) {
-	spielerStore.setSelectedPlayer(spieler);
-
-	router.push({ path: path });
+const players = computed(() => spielerStore.spielerListe.map(player => ({
+  ...player,
+  total: spielerStore.getPlayerSum(player),
+  ownFinesWaived: spielerStore.is600(player),
+  ownFine: spielerStore.getToPay(player, true),
+  otherFine: spielerStore.getFineFromOtherPlayers(player, true, spielerStore.is600(player)),
+  totalFine: germanCurrencyFormat(spielerStore.getGesamtToPay(player, false)),
+  maximumReached: spielerStore.getGesamtToPay(player, false) >= 15,
+})));
+function enter(player) {
+  spielerStore.setSelectedPlayer(player);
+  router.push('/eingabe');
 }
-
-// Computed-Eigenschaft für die Spielerliste mit berechneten Werten
-const spielerListeMitWerten = computed(() => {
-	return spielerStore.spielerListe.map(spieler => {
-		const is600 = spielerStore.is600(spieler);
-		const zuZahlen = spielerStore.getToPay(spieler, true);
-		const fineFromOthers = spielerStore.getFineFromOtherPlayers(spieler, true, is600);
-
-		const gesamtZuZahlen = is600 ? fineFromOthers : spielerStore.getGesamtToPay(spieler);
-		const gesamtAndere = spielerStore.getFineFromOtherPlayers(spieler, true, is600, true);
-		return {
-			...spieler,
-			is600,
-			zuZahlen,
-			fineFromOthers,
-			gesamtZuZahlen,
-			gesamtAndere
-		};
-	});
-});
 </script>
-
 <template>
-	<v-list lines="three" rounded variant="elevated" class="pb-0 my-4 bg-green">
-		<v-list-subheader color="white" class="text-h6">Spielerliste</v-list-subheader>
-
-		<v-list-item :elevation="2" v-for="(spieler, index) in spielerListeMitWerten" :key="index" class="py-3">
-			<v-list-item-title>{{ spieler.name }}</v-list-item-title>
-			<v-list-item-subtitle>
-				<span class="text-caption" :class="{ 'text-decoration-line-through': spieler.is600 }">Zu
-					zahlen: {{ spieler.zuZahlen }}</span>
-				<span class="text-caption text-green-darken-4" v-if="spieler.is600"> >= 600 </span>
-				<br />
-				<span class="text-caption">+ anderen {{ spieler.fineFromOthers }}</span>
-				<br />
-				=
-				<span v-if="spieler.is600">
-					{{ spieler.gesamtAndere }}
-				</span>
-				<span v-else class="text-subtitle-2 pr-2">
-					{{ spieler.gesamtZuZahlen }}
-				</span>
-			</v-list-item-subtitle>
-
-			<template v-slot:append>
-				<div class="d-flex flex-column ga-2">
-					<v-btn flat size="small" color="primary" @click="geheZuSeite(spieler, 'eingabe')">Eingabe</v-btn>
-				</div>
-
-			</template>
-		</v-list-item>
-	</v-list>
+  <div class="player-cards" aria-label="Spielerliste">
+    <v-card v-for="player in players" :key="player.id" class="player-card">
+      <v-avatar color="primary" variant="tonal" size="44">{{ player.name.slice(0, 1).toUpperCase() }}</v-avatar>
+      <div class="player-info"><h3>{{ player.name }}</h3><p class="muted">{{ player.total }} Holz</p></div>
+      <div class="player-fine"><strong>{{ player.totalFine }}</strong><span class="muted">{{ player.maximumReached ? 'Höchstbetrag' : 'zu zahlen' }}</span></div>
+      <v-btn variant="outlined" color="primary" @click="enter(player)" :aria-label="`Eingabe für ${player.name}`">Eingabe</v-btn>
+      <p v-if="player.ownFinesWaived" class="waived-fine"><s>Eigene Strafen: {{ player.ownFine }}</s><span class="text-primary">Entfallen ab 600 Holz</span></p>
+      <details class="fine-detail"><summary>Strafen im Detail</summary><p class="muted"><span v-if="!player.ownFinesWaived">Eigene Strafen: {{ player.ownFine }} · </span>Anteil von anderen: {{ player.otherFine }}</p></details>
+    </v-card>
+  </div>
 </template>
