@@ -3,7 +3,7 @@
 ## ![buildprocess](https://github.com/NicoG11/kegelzettelauswertung/actions/workflows/static.yml/badge.svg?event=push)
 
 # Kegelzettelauswertung
-- aktuelle Version: 1.5.1
+- aktuelle Version: 1.5.2
 - [Demo GithubPage](https://nicog11.github.io/kegelzettelauswertung/)
 
 ## Lokal mit Docker
