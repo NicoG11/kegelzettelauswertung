@@ -150,3 +150,5 @@ dist
 localhost*.pem
 *.md
 .claude
+# Keep repository instructions alongside the code.
+!AGENTS.md

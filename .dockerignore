@@ -1,0 +1,7 @@
+.git
+node_modules
+docs
+dist
+*.pem
+*.log
+src/assets/data-to-train

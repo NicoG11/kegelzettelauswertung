@@ -1,6 +1,14 @@
 <script setup>
 const items = [
 	{
+		id: 14,
+		color: "primary",
+		icon: "mdi-update",
+		date: "16.10.2026",
+		title: "Version 1.5.1 - Überarbeitete Auswertung",
+		text: 'Lokaler Testbetrieb mit Docker und Aktualisierung auf Vuetify 4. GitHub Pages baut und prüft die Anwendung automatisch vor der Veröffentlichung. Neues helles und dunkles Design. Spieltag, Saison und Teilnehmer werden vor der Eingabe festgelegt; eigene Spielernamen bleiben gespeichert. Gespeicherte Ergebnisse lassen sich nach Saison gruppieren, suchen, laden und löschen sowie mit Saisonangabe exportieren und teilen. Optionales automatisches Speichern aktualisiert denselben Spieltag lokal nach zwei Sekunden ohne weitere Änderungen. Die kompakte Spielerübersicht zeigt Strafensumme und Durchschnitt pro Spieler. Ab 600 Holz entfallen die eigenen Strafen und werden durchgestrichen; die Berechnung ist in Übersicht und Gesamtauswertung einheitlich.',
+	},
+	{
 		id: 7,
 		color: "primary",
 		icon: "mdi-bug",
@@ -68,7 +76,7 @@ const items = [
 			<v-row class="mb-4">
 
 				<v-col>
-					<div class="text-h5 pt-2 text-center font-weight-light">Changelog</div>
+					<div class="text-headline-small pt-2 text-center font-weight-light">Changelog</div>
 				</v-col>
 			</v-row>
 
@@ -78,12 +86,12 @@ const items = [
 
 
 					<v-card>
-						<v-card-title :class="['text-h6', `bg-${item.color}`]">
+						<v-card-title :class="['text-title-large', `bg-${item.color}`]">
 							<v-icon>{{ item.icon }}</v-icon> {{ item.date }}
 							<br />
 							{{ item.title }}
 						</v-card-title>
-						<v-card-text class="bg-white pa-4 text-body-1">
+						<v-card-text class="bg-surface pa-4 text-body-large">
 							<p>{{ item.text }}</p>
 						</v-card-text>
 					</v-card>

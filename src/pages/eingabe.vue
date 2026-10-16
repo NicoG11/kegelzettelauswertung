@@ -233,6 +233,7 @@ const router = useRouter();
 
 const spielerStore = useSpielerStore();
 
+const ownFinesWaived = computed(() => !!spielerStore.selectedPlayer && spielerStore.is600(spielerStore.selectedPlayer));
 const aktuellerSchritt = ref(1);
 const anzahlBahnen = ref(4);
 
@@ -269,12 +270,12 @@ onUnmounted(() => {
 const changeInputValue = (lane, index) => {
 	currentLane.value = lane;
 	currentIndex.value = index;
-	newValue.value = spielerStore.selectedPlayer?.bahnen[lane][index] || "";
+	newValue.value = spielerStore.selectedPlayer?.bahnen[lane][index] ?? "";
 	dialog.value = true;
 };
 const saveNewValue = () => {
 	const value = Number(newValue.value);
-	if (!Number.isNaN(value) && value >= 0 && value <= 9) {
+	if (newValue.value !== "" && Number.isInteger(value) && value >= 0 && value <= 9) {
 		spielerStore.changeScore(currentLane.value, currentIndex.value, value);
 		dialog.value = false;
 	} else {
@@ -364,8 +365,8 @@ const gesamtAuswertung = computed(() => {
 	// Boni die dieser Spieler den anderen "aufgedrückt" hat
 	const bonusGiven = spielerStore.getToPayOther(spielerStore.selectedPlayer);
 
-	// Gesamtsumme (mit Deckelung bei 15€)
-	const total = Math.min(ownFines + bonusFromOthers, 15);
+	// Apply the same 600-pin exemption and cap as in the overview.
+	const total = spielerStore.getGesamtToPay(spielerStore.selectedPlayer, false);
 
 	return {
 		regular: ownFines,
@@ -402,8 +403,8 @@ function addNumberToLaneScore(number) {
 	<!-- Snackbar für Hinweise -->
 	<v-snackbar v-model="snackbar.visible" :timeout="snackbar.timeout">
 		{{ snackbar.message }}
-		<template v-slot:action="{ attrs }">
-			<v-btn color="red" text @click="snackbar.visible = false" v-bind="attrs">Schließen</v-btn>
+		<template v-slot:actions>
+			<v-btn color="red" variant="text" @click="snackbar.visible = false">Schließen</v-btn>
 		</template>
 	</v-snackbar>
 
@@ -416,22 +417,17 @@ function addNumberToLaneScore(number) {
 			</v-card-text>
 			<v-card-actions>
 				<v-spacer></v-spacer>
-				<v-btn color="blue darken-1" text @click="dialog = false">Abbrechen</v-btn>
-				<v-btn color="blue darken-1" text @click="saveNewValue">Speichern</v-btn>
+				<v-btn color="primary" variant="text" @click="dialog = false">Abbrechen</v-btn>
+				<v-btn color="primary" variant="text" @click="saveNewValue">Speichern</v-btn>
 			</v-card-actions>
 		</v-card>
 	</v-dialog>
 
-	<v-container class="">
+	<v-container class="entry-shell">
 		<Teleport to="#teleport">
-			<v-btn @click="$router.push({ path: '/' })">Zurück</v-btn>
+			<v-btn icon="mdi-arrow-left" aria-label="Zurück zur Übersicht" @click="$router.push({ path: '/' })" />
 		</Teleport>
-		<v-row class="mb-4">
-			<v-col>
-				<div class="text-h5 pt-2 text-center font-weight-light">Auswertung für {{
-					spielerStore.selectedPlayer?.name }}</div>
-			</v-col>
-		</v-row>
+		<header class="entry-heading"><p class="eyebrow">Würfe erfassen</p><h1>{{ spielerStore.selectedPlayer?.name }}</h1><p class="muted">Per Tastenfeld oder Mikrofon. Einzelne Würfe zum Korrigieren antippen.</p></header>
 
 		<v-stepper non-linear alt-labels v-model="aktuellerSchritt">
 			<template v-slot:default="{ prev, next }">
@@ -451,60 +447,57 @@ function addNumberToLaneScore(number) {
 						<!-- Inhalt für das Scannen der einzelnen Bahnen -->
 						<v-card>
 							<v-card-text class="pa-0">
+								<div class="lane-summary">
+									<div><span>Volle</span><strong>{{ spielerStore.getSum(n, 'volle') }}</strong></div>
+									<div><span>Abräumen</span><strong>{{ spielerStore.getSum(n, 'abr') }}</strong></div>
+									<div><span>Gesamt</span><strong>{{ spielerStore.getSum(n, 'volle') + spielerStore.getSum(n, 'abr') }}</strong></div>
+								</div>
 								<!-- Ziffernblatt eingeben -->
 								<v-row>
 									<v-col cols="7">
 										<h4 class="text-subtitle mb-2">Bahn {{ n }} einlesen</h4>
 										<Numberpad :lane="n" />
 										<v-divider class="my-4"></v-divider>
-										<div class="d-flex flex-column ga-4">
-											<v-btn color="error" @click="spielerStore.clearLastScore(n)">Letzten
-												Wurf<br />löschen</v-btn>
-											<v-btn color="error" @click="spielerStore.clearLane(n)">Bahn {{ n
-												}}<br />löschen</v-btn>
+										<div class="entry-controls">
+											<v-btn variant="tonal" color="primary" @click="toggleSpeechRecognition(n)"
+												:prepend-icon="isRecording ? 'mdi-stop' : 'mdi-microphone-outline'" :class="{ recording: isRecording }">
+												{{ isRecording ? 'Aufnahme stoppen' : 'Spracheingabe' }}</v-btn>
+											<v-btn variant="text" color="error" :disabled="!spielerStore.selectedPlayer?.bahnen[n].length"
+												@click="spielerStore.clearLane(n)">Bahn {{ n }} löschen</v-btn>
 										</div>
-										<v-divider class="my-4"></v-divider>
-
-										<v-btn variant="outlined" @click="toggleSpeechRecognition(n)" class="speech-btn"
-											:class="{ recording: isRecording }">
-											<div class="speech-icon">
-												<v-icon v-if="isRecording">mdi-stop</v-icon>
-												<v-icon v-else>mdi-microphone</v-icon>
-											</div>
-										</v-btn>
 									</v-col>
 									<v-col cols="5" class="px-0">
-										<table>
+										<table class="score-table">
 											<thead>
 												<tr>
-													<th class="text-right px-1 text-caption">W</th>
-													<th class="text-center px-2 text-subtitle-2">V</th>
-													<th class="text-right px-1 text-caption">W</th>
-													<th class="text-center px-2 text-subtitle-2">A</th>
+													<th class="text-right px-1 text-body-small">W</th>
+													<th class="text-center px-2 text-title-small">V</th>
+													<th class="text-right px-1 text-body-small">W</th>
+													<th class="text-center px-2 text-title-small">A</th>
 												</tr>
 											</thead>
 											<tfoot>
 												<tr>
-													<td class="text-right px-1 text-caption"></td>
-													<td class="text-center px-1 text-subtitle-2">{{
+													<td class="text-right px-1 text-body-small"></td>
+													<td class="text-center px-1 text-title-small">{{
 														spielerStore.getSum(n, 'volle') }}
 													</td>
-													<td class="text-right px-1 text-caption"></td>
-													<td class="text-center px-1 text-subtitle-2">{{
+													<td class="text-right px-1 text-body-small"></td>
+													<td class="text-center px-1 text-title-small">{{
 														spielerStore.getSum(n, 'abr') }}
 													</td>
 												</tr>
 											</tfoot>
 											<tbody>
-												<tr v-for="(wurf, index) in 15" :key="`volle-${wurf.index}`">
-													<td class="text-right px-1 text-caption">{{ wurf }}</td>
-													<td class="text-center px-1 text-subtitle-2"
+												<tr v-for="(wurf, index) in 15" :key="`volle-${wurf}`">
+													<td class="text-right px-1 text-body-small">{{ wurf }}</td>
+													<td class="text-center px-1 text-title-small"
 														@click="changeInputValue(n, index)">
 														{{ spielerStore.selectedPlayer?.bahnen[n].length >= wurf ?
 															spielerStore.selectedPlayer?.bahnen[n][index] : '' }}
 													</td>
-													<td class="text-right px-1 text-caption">{{ wurf + 15 }}</td>
-													<td class="text-center px-1 text-subtitle-2"
+													<td class="text-right px-1 text-body-small">{{ wurf + 15 }}</td>
+													<td class="text-center px-1 text-title-small"
 														@click="changeInputValue(n, index + 15)">
 														{{ spielerStore.selectedPlayer?.bahnen[n].length >= wurf + 15 ?
 															spielerStore.selectedPlayer?.bahnen[n][index + 15] : '' }}
@@ -534,10 +527,10 @@ function addNumberToLaneScore(number) {
 													<tr>
 														<td class="text-left">Gesamt</td>
 														<td></td>
-														<td class="text-right px-4 text-subtitle-2">
+														<td class="text-right px-4 text-title-small">
 															{{ germanCurrencyFormat(gesamtSummePerBahn[n].regular) }}
 														</td>
-														<td class="text-right text-caption">{{
+														<td class="text-right text-body-small">{{
 															germanCurrencyFormat(gesamtSummePerBahn[n].other) }}</td>
 													</tr>
 												</tfoot>
@@ -545,15 +538,15 @@ function addNumberToLaneScore(number) {
 													<tr v-for="(rule, index) in finesPerBahn[n]"
 														:key="rule.name + index" :class="{ 'text-blue-darken-1': rule.info }">
 														<td>
-															<span class="text-subtitle-2">{{ rule.name }}</span>
+															<span class="text-title-small">{{ rule.name }}</span>
 															<br v-if="!rule.info" />
-															<span v-if="!rule.info" class="text-caption">{{
+															<span v-if="!rule.info" class="text-body-small">{{
 																germanCurrencyFormat(rule.cost) }}</span>
 														</td>
 														<td class="text-right">{{ rule.count }}x</td>
 														<td class="text-right px-4">{{ rule.other ? '' :
 															germanCurrencyFormat(rule.total) }}</td>
-														<td class="text-right text-caption">{{ rule.other ?
+														<td class="text-right text-body-small">{{ rule.other ?
 															germanCurrencyFormat(rule.total) : '' }}</td>
 													</tr>
 												</tbody>
@@ -590,24 +583,24 @@ function addNumberToLaneScore(number) {
 												<tr>
 													<td class="text-left">Gesamt</td>
 													<td></td>
-													<td class="text-right px-2 text-subtitle-2">{{
+													<td class="text-right px-2 text-title-small">{{
 														germanCurrencyFormat(gesamtSummePerBahn[n].regular) }}</td>
-													<td class="text-right text-caption">{{
+													<td class="text-right text-body-small">{{
 														germanCurrencyFormat(gesamtSummePerBahn[n].other) }}</td>
 												</tr>
 											</tfoot>
 											<tbody>
 												<tr v-for="(rule, index) in finesPerBahn[n]" :key="rule.name + index" :class="{ 'text-blue-darken-1': rule.info }">
 													<td>
-														<span class="text-subtitle-2">{{ rule.name }}</span>
+														<span class="text-title-small">{{ rule.name }}</span>
 														<br v-if="!rule.info" />
-														<span v-if="!rule.info" class="text-caption">{{ germanCurrencyFormat(rule.cost) }}</span>
+														<span v-if="!rule.info" class="text-body-small">{{ germanCurrencyFormat(rule.cost) }}</span>
 													</td>
 													<td class="text-right">{{ rule.count }}x</td>
 													<td class="text-right px-2">{{ rule.other ? '' :
 														germanCurrencyFormat(rule.total) }}
 													</td>
-													<td class="text-right text-caption">{{ rule.other ?
+													<td class="text-right text-body-small">{{ rule.other ?
 														germanCurrencyFormat(rule.total)
 														: '' }}</td>
 												</tr>
@@ -634,24 +627,24 @@ function addNumberToLaneScore(number) {
 												<tr>
 													<td class="text-left">Gesamt</td>
 													<td></td>
-													<td class="text-right px-2 text-subtitle-2">{{
+													<td class="text-right px-2 text-title-small">{{
 														germanCurrencyFormat(gesamtSummePerBahn[n].regular) }}</td>
-													<td class="text-right text-caption">{{
+													<td class="text-right text-body-small">{{
 														germanCurrencyFormat(gesamtSummePerBahn[n].other) }}</td>
 												</tr>
 											</tfoot>
 											<tbody>
 												<tr v-for="(rule, index) in finesPerBahn[n]" :key="rule.name + index" :class="{ 'text-blue-darken-1': rule.info }">
 													<td>
-														<span class="text-subtitle-2">{{ rule.name }}</span>
+														<span class="text-title-small">{{ rule.name }}</span>
 														<br v-if="!rule.info" />
-														<span v-if="!rule.info" class="text-caption">{{ germanCurrencyFormat(rule.cost) }}</span>
+														<span v-if="!rule.info" class="text-body-small">{{ germanCurrencyFormat(rule.cost) }}</span>
 													</td>
 													<td class="text-right">{{ rule.count }}x</td>
 													<td class="text-right px-2">{{ rule.other ? '' :
 														germanCurrencyFormat(rule.total) }}
 													</td>
-													<td class="text-right text-caption">{{ rule.other ?
+													<td class="text-right text-body-small">{{ rule.other ?
 														germanCurrencyFormat(rule.total)
 														: '' }}</td>
 												</tr>
@@ -681,13 +674,13 @@ function addNumberToLaneScore(number) {
 											<tbody>
 												<tr v-for="(rule, key) in crossLane9ers" :key="key">
 													<td>
-														<span class="text-subtitle-2">{{ rule.name }}</span>
+														<span class="text-title-small">{{ rule.name }}</span>
 														<br />
-														<span class="text-caption">{{ germanCurrencyFormat(rule.cost) }}</span>
+														<span class="text-body-small">{{ germanCurrencyFormat(rule.cost) }}</span>
 													</td>
 													<td class="text-right">{{ rule.count }}x</td>
 													<td class="text-right px-4">{{ rule.other ? '' : germanCurrencyFormat(rule.total) }}</td>
-													<td class="text-right text-caption">{{ rule.other ? germanCurrencyFormat(rule.total) : '' }}</td>
+													<td class="text-right text-body-small">{{ rule.other ? germanCurrencyFormat(rule.total) : '' }}</td>
 												</tr>
 											</tbody>
 										</table>
@@ -715,13 +708,13 @@ function addNumberToLaneScore(number) {
 											<tbody>
 												<tr v-for="(rule, key) in gesamtStatistik" :key="key" :class="{ 'text-blue-darken-1': rule.info }">
 													<td>
-														<span class="text-subtitle-2">{{ rule.name }}</span>
+														<span class="text-title-small">{{ rule.name }}</span>
 														<br v-if="!rule.info" />
-														<span v-if="!rule.info" class="text-caption">{{ germanCurrencyFormat(rule.cost) }}</span>
+														<span v-if="!rule.info" class="text-body-small">{{ germanCurrencyFormat(rule.cost) }}</span>
 													</td>
 													<td class="text-right">{{ rule.count }}x</td>
 													<td class="text-right px-4">{{ rule.other ? '' : germanCurrencyFormat(rule.total) }}</td>
-													<td class="text-right text-caption">{{ rule.other ? germanCurrencyFormat(rule.total) : '' }}</td>
+													<td class="text-right text-body-small">{{ rule.other ? germanCurrencyFormat(rule.total) : '' }}</td>
 												</tr>
 											</tbody>
 										</table>
@@ -748,28 +741,28 @@ function addNumberToLaneScore(number) {
 											</thead>
 											<tbody>
 												<tr>
-													<td class="text-subtitle-2">Eigene Strafen</td>
-													<td class="text-right px-4">{{ germanCurrencyFormat(gesamtAuswertung.regular) }}</td>
-													<td class="text-right text-caption"></td>
+													<td class="text-title-small"><span :class="{ 'waived-own-fine': ownFinesWaived }">Eigene Strafen</span><span v-if="ownFinesWaived" class="d-block text-body-small text-primary">Entfallen ab 600 Holz</span></td>
+													<td class="text-right px-4" :class="{ 'waived-own-fine': ownFinesWaived }">{{ germanCurrencyFormat(gesamtAuswertung.regular) }}</td>
+													<td class="text-right text-body-small"></td>
 													<td class="text-right"></td>
 												</tr>
 												<tr>
-													<td class="text-subtitle-2">Boni von anderen</td>
+													<td class="text-title-small">Boni von anderen</td>
 													<td class="text-right px-4"></td>
-													<td class="text-right text-caption">{{ germanCurrencyFormat(gesamtAuswertung.other) }}</td>
-													<td class="text-right text-caption"></td>
+													<td class="text-right text-body-small">{{ germanCurrencyFormat(gesamtAuswertung.other) }}</td>
+													<td class="text-right text-body-small"></td>
 												</tr>
 												<tr class="text-grey-darken-1">
-													<td class="text-caption">Den anderen "aufgedrückt"</td>
-													<td class="text-right text-caption"></td>
-													<td class="text-right text-caption"></td>
-													<td class="text-right px-4 text-caption">{{ germanCurrencyFormat(gesamtAuswertung.bonusGiven) }}</td>
+													<td class="text-body-small">Den anderen "aufgedrückt"</td>
+													<td class="text-right text-body-small"></td>
+													<td class="text-right text-body-small"></td>
+													<td class="text-right px-4 text-body-small">{{ germanCurrencyFormat(gesamtAuswertung.bonusGiven) }}</td>
 												</tr>
 											</tbody>
 											<tfoot>
 												<tr>
-													<td class="text-left text-h6">Gesamt zu zahlen</td>
-													<td colspan="2" class="text-center px-4 text-h6">{{ germanCurrencyFormat(gesamtAuswertung.total) }}</td>
+													<td class="text-left text-title-large">Gesamt zu zahlen</td>
+													<td colspan="2" class="text-center px-4 text-title-large">{{ germanCurrencyFormat(gesamtAuswertung.total) }}</td>
 													<td></td>
 												</tr>
 											</tfoot>
@@ -781,8 +774,8 @@ function addNumberToLaneScore(number) {
 					</v-stepper-window-item>
 				</v-stepper-window>
 
-				<v-stepper-actions :disabled="disabled" color="green" @click:prev="prev" @click:next="next"
-					next-text="weiter" prev-text="zurück"></v-stepper-actions>
+				<v-stepper-actions :disabled="disabled" color="primary" @click:prev="prev" @click:next="next"
+					:next-text="aktuellerSchritt < 4 ? `Weiter zu Bahn ${aktuellerSchritt + 1}` : 'Zur Berechnung'" prev-text="Zurück"></v-stepper-actions>
 			</template>
 		</v-stepper>
 	</v-container>
@@ -795,23 +788,23 @@ function addNumberToLaneScore(number) {
 }
 
 table thead tr th {
-	border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+	border-bottom: 1px solid rgba(var(--v-border-color), 0.12);
 }
 
 table tfoot tr td {
-	border-top: 1px solid rgba(0, 0, 0, 0.12);
+	border-top: 1px solid rgba(var(--v-border-color), 0.12);
 	padding-top: 2px;
 }
 
 table.auswertung tr td {
-	border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+	border-bottom: 1px solid rgba(var(--v-border-color), 0.12);
 }
 
 .v-expansion-panel-text > .v-expansion-panel-text__wrapper {
 	padding: 0 !important;
 }
 
-.text-subtitle-2 {
+.text-title-small {
 	line-height: normal;
 }
 

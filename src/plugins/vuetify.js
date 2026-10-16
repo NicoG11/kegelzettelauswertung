@@ -1,60 +1,47 @@
-/**
- * plugins/vuetify.js
- *
- * Framework documentation: https://vuetifyjs.com`
- */
-
-// Styles
 import '@mdi/font/css/materialdesignicons.css';
+import 'roboto-fontface/css/roboto/roboto-fontface.css';
 import 'vuetify/styles';
+import { createVuetify } from 'vuetify';
+import { de } from 'vuetify/locale';
 
-// Composables
-import {createVuetify} from 'vuetify';
+let defaultTheme = 'clubLight';
+try {
+  if (localStorage.getItem('kegelzettel_theme') === 'clubDark') defaultTheme = 'clubDark';
+} catch { /* Use the light theme when storage is unavailable. */ }
 
-const myCustomLightTheme = {
-    dark: false,
-    colors: {
-        background: '#f0f0f0',
-        surface: '#FFFFFF',
-        'surface-bright': '#FFFFFF',
-        'surface-light': '#EEEEEE',
-        'surface-variant': '#424242',
-        'on-surface-variant': '#EEEEEE',
-        primary: '#4caf50', //'#1867C0',
-        'primary-darken-1': '#1F5592',
-        secondary: '#48A9A6',
-        'secondary-darken-1': '#018786',
-        error: '#B00020',
-        info: '#2196F3',
-        success: '#4CAF50',
-        warning: '#FB8C00',
-    },
-    variables: {
-        'border-color': '#000000',
-        'border-opacity': 0.12,
-        'high-emphasis-opacity': 0.87,
-        'medium-emphasis-opacity': 0.6,
-        'disabled-opacity': 0.38,
-        'idle-opacity': 0.04,
-        'hover-opacity': 0.04,
-        'focus-opacity': 0.12,
-        'selected-opacity': 0.08,
-        'activated-opacity': 0.12,
-        'pressed-opacity': 0.12,
-        'dragged-opacity': 0.08,
-        'theme-kbd': '#212529',
-        'theme-on-kbd': '#FFFFFF',
-        'theme-code': '#F5F5F5',
-        'theme-on-code': '#000000',
-    },
-};
-
-// https://vuetifyjs.com/en/introduction/why-vuetify/#feature-guides
 export default createVuetify({
-    theme: {
-        defaultTheme: 'myCustomLightTheme',
-        themes: {
-            myCustomLightTheme,
+  locale: { locale: 'de', messages: { de } },
+  theme: {
+    defaultTheme,
+    themes: {
+      clubLight: {
+        dark: false,
+        colors: {
+          background: '#F6F7F4', surface: '#FFFFFF', 'surface-light': '#F0F3EF',
+          'surface-variant': '#E7EDE8', 'on-surface-variant': '#4C6056',
+          primary: '#176B4B', 'on-primary': '#FFFFFF', secondary: '#537569',
+          'on-background': '#172D29', 'on-surface': '#172D29',
+          error: '#B32632', success: '#176B4B', info: '#326894', warning: '#916200',
         },
+      },
+      clubDark: {
+        dark: true,
+        colors: {
+          background: '#0D1B2A', surface: '#152638', 'surface-light': '#1C3146',
+          'surface-variant': '#273D50', 'on-surface-variant': '#B8CADB',
+          primary: '#7AF0B2', 'on-primary': '#09281B', secondary: '#A7CDBA',
+          'on-background': '#EDF5FA', 'on-surface': '#EDF5FA',
+          error: '#FFB4AB', success: '#7AF0B2', info: '#A7C8F1', warning: '#F5CE80',
+        },
+      },
     },
+  },
+  defaults: {
+    VBtn: { rounded: 'lg', elevation: 0, style: 'letter-spacing: 0; font-weight: 600;' },
+    VCard: { rounded: 'xl', elevation: 0, border: true },
+    VTextField: { variant: 'outlined', color: 'primary', rounded: 'lg' },
+    VCheckbox: { color: 'primary', hideDetails: true },
+    VTabs: { color: 'primary' },
+    VDialog: { scrollable: true },
+  },
 });
