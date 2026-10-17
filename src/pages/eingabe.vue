@@ -10,11 +10,17 @@ import { useSpielerStore } from "@/stores/spielerStore";
 
 import { computed, onMounted, onUnmounted, ref, watch, nextTick, reactive } from "vue";
 import { useRouter } from "vue-router";
+import ZettelScanner from '@/components/ZettelScanner.vue';
 import { createModel } from 'vosk-browser';
 import { parseSpokenScores, speechGrammar, addSpokenScore } from '@/services/speechScores';
 
 
 
+const scannerLane = ref(null);
+function openScanner(lane) {
+	if (isRecording.value || isStartingRecognition.value) stopRecognition();
+	scannerLane.value = lane;
+}
 const isRecording = ref(false);
 const isStartingRecognition = ref(false);
 const speechLane = ref(null);
@@ -419,11 +425,12 @@ function addNumberToLaneScore(number, lane) {
 		</v-card>
 	</v-dialog>
 
+	<ZettelScanner v-if="scannerLane !== null && spielerStore.selectedPlayer" :lane="scannerLane" @close="scannerLane = null" @saved="scannerLane = null" />
 	<v-container class="entry-shell">
 		<Teleport to="#teleport">
 			<v-btn icon="mdi-arrow-left" aria-label="Zurück zur Übersicht" @click="$router.push({ path: '/' })" />
 		</Teleport>
-		<header class="entry-heading"><p class="eyebrow">Würfe erfassen</p><h1>{{ spielerStore.selectedPlayer?.name }}</h1><p class="muted">Per Tastenfeld oder Mikrofon. Einzelne Würfe zum Korrigieren antippen.</p></header>
+		<header class="entry-heading"><p class="eyebrow">Würfe erfassen</p><h1>{{ spielerStore.selectedPlayer?.name }}</h1><p class="muted">Per Tastenfeld, Mikrofon oder Zettelscan. Einzelne Würfe zum Korrigieren antippen.</p></header>
 
 		<v-stepper non-linear alt-labels v-model="aktuellerSchritt">
 			<template v-slot:default="{ prev, next }">
@@ -458,6 +465,7 @@ function addNumberToLaneScore(number, lane) {
 											<v-btn variant="tonal" color="primary" @click="toggleSpeechRecognition(n)"
 												:loading="isStartingRecognition" :prepend-icon="isRecording ? 'mdi-stop' : 'mdi-microphone-outline'" :class="{ recording: isRecording }">
 												{{ isRecording ? 'Aufnahme stoppen' : 'Spracheingabe' }}</v-btn>
+											<v-btn variant="tonal" prepend-icon="mdi-camera-outline" @click="openScanner(n)">Zettel scannen</v-btn>
 											<v-btn variant="text" color="error" :disabled="!spielerStore.selectedPlayer?.bahnen[n].length"
 												@click="spielerStore.clearLane(n)">Bahn {{ n }} löschen</v-btn>
 										</div>

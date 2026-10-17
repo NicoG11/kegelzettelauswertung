@@ -152,3 +152,6 @@ localhost*.pem
 .claude
 # Keep repository instructions alongside the code.
 !AGENTS.md
+
+# OCR runtime is copied from the locked dependencies before dev/build.
+/public/ocr/runtime/
