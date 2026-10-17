@@ -3,7 +3,7 @@
 ## ![buildprocess](https://github.com/NicoG11/kegelzettelauswertung/actions/workflows/static.yml/badge.svg?event=push)
 
 # Kegelzettelauswertung
-- aktuelle Version: 1.6.0
+- aktuelle Version: 1.6.1
 - [Demo GithubPage](https://nicog11.github.io/kegelzettelauswertung/)
 
 ## Lokal mit Docker
@@ -91,3 +91,9 @@ sind noch nicht enthalten. Erkennungsqualität hängt von Schärfe, Licht und Au
 Blasse Bonfotos und ungewohnte Druckschriften können viele manuelle Korrekturen
 erfordern. Die Erkennung ist ein Vorschlag und ersetzt den Abgleich mit dem Foto nicht.
 Gestrichelte Spaltengrenzen lassen sich unter „Spalten und Licht anpassen“ verschieben.
+
+Zeilenweise Zettel: Format „Zeilenweise (Volle über Abräumen)“ wählen und nur
+die 15 Wurffelder einer Bahn mit Volle und Abräumen markieren. Beschriftungen
+und Summen außerhalb lassen. „Wurfnummern und Holz“ umfasst vier Zeilen;
+„Nur Holz“ umfasst zwei Ergebniszeilen. Die Hilfslinien an die gleichmäßig
+angeordneten Wurffelder und Zeilen anpassen. Andere Bahnen einzeln scannen.
