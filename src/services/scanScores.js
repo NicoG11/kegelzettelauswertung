@@ -112,3 +112,44 @@ export function mergeScannedScores(existing, values, replace = false) {
   }
   return merged;
 }
+
+// Horizontal result rows have 15 fixed cells. Missing digits must not shift later throws.
+export function parseHorizontalScores(bands, width) {
+  if (bands.length !== 2 || !Number.isFinite(width) || width <= 0) throw new Error('Ungültiger Zeilenbereich.');
+  const rows = Array.from({ length: 30 }, (_, i) => ({ throw: i + 1, value: '', total: null, issues: [], source: '' }));
+  bands.forEach((tsv, band) => {
+    const cells = Array.from({ length: 15 }, () => []);
+    for (const entry of tsv.split('\n').slice(1)) {
+      const fields = entry.split('\t');
+      const text = fields[11]?.trim();
+      if (fields[0] !== '5' || !text || !/^[0-9OQ@]+[*:.]?$/.test(text)) continue;
+      const digits = text.replace(/[*:.]$/, '');
+      const left = Number(fields[6]), span = Number(fields[8]);
+      // Joined OCR words are safe only if their width fits adjacent cells.
+      // A missing interior digit must not redistribute the remaining digits.
+      const pitch = width / 15;
+      const glyphWidth = span - (digits.length - 1) * pitch;
+      if (digits.length > 1 && (glyphWidth < pitch * 0.15 || glyphWidth > pitch)) {
+        const first = Math.max(0, Math.floor(left / pitch));
+        const last = Math.min(14, Math.floor((left + span) / pitch));
+        for (let i = first; i <= last; i++) cells[i].push({ ambiguous: true, value: '?' });
+        continue;
+      }
+      for (let i = 0; i < digits.length; i++) {
+        const cell = Math.floor((left + span * (i + 0.5) / digits.length) / width * 15);
+        if (cell < 0 || cell > 14) continue;
+        const digit = digits[i];
+        cells[cell].push({ value: /^[0-9]$/.test(digit) ? digit : '0', confidence: Number(fields[10]), corrected: !/^[0-9]$/.test(digit) });
+      }
+    }
+    cells.forEach((matches, i) => {
+      const row = rows[band * 15 + i];
+      if (!matches.length) return;
+      row.source = matches.map(match => match.value).join(' / ');
+      if (matches.length !== 1 || matches[0].ambiguous) { row.issues.push('Ziffern nicht eindeutig einem Wurffeld zugeordnet'); return; }
+      row.value = matches[0].value;
+      if (matches[0].confidence < 75 || matches[0].corrected) row.issues.push('Unsichere Erkennung');
+    });
+  });
+  return rows;
+}

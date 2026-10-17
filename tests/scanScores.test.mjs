@@ -62,3 +62,21 @@ test('separate OCR columns match by height and never shift after a missing score
   const rows = parseScanLines(result);
   assert.equal(rows[1].value, ''); assert.equal(rows[2].value, '9');
 });
+
+const horizontalTsv = words => 'level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext\n' + words.map(([text, left, width = 40], i) => `5\t1\t1\t1\t1\t${i + 1}\t${left}\t0\t${width}\t30\t95\t${text}`).join('\n');
+test('horizontal Volle and Abräumen map to throws 1–15 and 16–30', async () => {
+  const { parseHorizontalScores } = await import('../src/services/scanScores.js');
+  const rows = parseHorizontalScores([horizontalTsv([['9', 30], ['0', 230], ['8', 1430]]), horizontalTsv([['1', 30], ['7', 1430]])], 1500);
+  assert.equal(rows[0].value, '9'); assert.equal(rows[1].value, '');
+  assert.equal(rows[2].value, '0'); assert.equal(rows[14].value, '8');
+  assert.equal(rows[15].value, '1'); assert.equal(rows[29].value, '7');
+});
+test('horizontal OCR joins adjacent digits but never spreads digits across missing cells', async () => {
+  const { parseHorizontalScores } = await import('../src/services/scanScores.js');
+  const rows = parseHorizontalScores([horizontalTsv([['987', 30, 240]]), horizontalTsv([['98', 30, 240], ['12', 530, 40], ['150', 1330, 80]])], 1500);
+  assert.deepEqual(rows.slice(0, 3).map(row => row.value), ['9', '8', '7']);
+  assert.deepEqual(rows.slice(15, 18).map(row => row.value), ['', '', '']);
+  assert.equal(rows[20].value, ''); // multi-digit total is not a single throw
+  assert.ok(rows[15].issues.length);
+  assert.throws(() => parseHorizontalScores([], 0), /Ungültiger/);
+});

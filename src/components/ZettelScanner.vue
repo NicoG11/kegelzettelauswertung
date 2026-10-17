@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useSpielerStore } from '@/stores/spielerStore';
 import { createScanWorker } from '@/services/scanOcr';
-import { combineScanColumns, mergeScannedScores, parseScanLines } from '@/services/scanScores';
+import { combineScanColumns, mergeScannedScores, parseScanLines, parseHorizontalScores } from '@/services/scanScores';
 
 const props = defineProps({ lane: { type: Number, required: true } });
 const emit = defineEmits(['close', 'saved']);
@@ -16,6 +16,10 @@ const previewImage = ref(null);
 const cropX = ref([0, 100]);
 const cropY = ref([0, 100]);
 const format = ref('funk');
+const horizontal = computed(() => format.value === 'zeilen');
+const rowLayout = ref('vier');
+const rowBoundaries = ref([25, 50, 75]);
+const halfBoundary = ref(50);
 const firstSplit = ref(32);
 const secondSplit = ref(64);
 const flattenShadows = ref(true);
@@ -34,6 +38,7 @@ let generation = 0;
 let dragStart = null;
 
 const formats = [
+  { title: 'Zeilenweise (Volle über Abräumen)', value: 'zeilen' },
   { title: 'FUNK-Bon (Wurf / H / Ges.)', value: 'funk' },
   { title: 'Möckel-Bon (WU / EI / SU)', value: 'moeckel' },
   { title: 'Vier-Bahnen-Zettel (Wurf / Holz)', value: 'vierbahnen' },
@@ -50,7 +55,7 @@ const importError = computed(() => {
 });
 const cropStyle = computed(() => ({ left: `${cropX.value[0]}%`, top: `${cropY.value[0]}%`, width: `${cropX.value[1] - cropX.value[0]}%`, height: `${cropY.value[1] - cropY.value[0]}%` }));
 function invalidate() { rows.value = []; reviewed.value = false; replace.value = false; error.value = ''; }
-watch([cropX, cropY, format, firstSplit, secondSplit, flattenShadows], invalidate, { deep: true });
+watch([cropX, cropY, format, firstSplit, secondSplit, flattenShadows, rowLayout, rowBoundaries, halfBoundary], invalidate, { deep: true });
 watch(format, value => { firstSplit.value = value === 'vierbahnen' ? 50 : 32; secondSplit.value = 64; });
 watch(firstSplit, value => { if (secondSplit.value <= value) secondSplit.value = value + 5; });
 watch(values, () => { reviewed.value = false; }, { deep: true });
@@ -141,18 +146,39 @@ async function recognize() {
       pixels.data[i] = pixels.data[i + 1] = pixels.data[i + 2] = grey;
     }
     context.putImageData(pixels, 0, 0);
-    await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1', user_defined_dpi: '300' });
-    const boundaries = format.value === 'vierbahnen' ? [0, firstSplit.value, 100] : [0, firstSplit.value, secondSplit.value, 100];
-    const columns = [];
-    for (let i = 0; i < boundaries.length - 1; i++) {
-      status.value = `Spalte ${i + 1} von ${boundaries.length - 1} wird erkannt …`;
-      const left = Math.round(canvas.width * boundaries[i] / 100);
-      const columnWidth = Math.round(canvas.width * boundaries[i + 1] / 100) - left;
-      const result = await worker.recognize(canvas.toDataURL('image/png'), { rectangle: { left, top: 0, width: columnWidth, height: canvas.height } }, { text: true, tsv: true });
-      if (disposed || request !== generation) return;
-      columns.push(result.data.tsv);
+    const imageData = canvas.toDataURL('image/png');
+    if (horizontal.value) {
+      await worker.setParameters({ tessedit_pageseg_mode: '7', preserve_interword_spaces: '1', user_defined_dpi: '300' });
+      const boundaries = rowLayout.value === 'vier' ? [0, ...rowBoundaries.value, 100] : [0, halfBoundary.value, 100];
+      const resultBands = rowLayout.value === 'vier' ? [1, 3] : [0, 1];
+      const bands = [];
+      for (const band of resultBands) {
+        const top = Math.round(canvas.height * boundaries[band] / 100);
+        const height = Math.round(canvas.height * boundaries[band + 1] / 100) - top;
+        // Send only the result row, so forced single-line OCR cannot pick a
+        // different line elsewhere on the slip (including throw-number headers).
+        const strip = document.createElement('canvas');
+        strip.width = canvas.width; strip.height = height;
+        strip.getContext('2d').drawImage(canvas, 0, top, canvas.width, height, 0, 0, canvas.width, height);
+        const result = await worker.recognize(strip.toDataURL('image/png'), {}, { text: true, tsv: true });
+        if (disposed || request !== generation) return;
+        bands.push(result.data.tsv);
+      }
+      rows.value = parseHorizontalScores(bands, canvas.width);
+    } else {
+      await worker.setParameters({ tessedit_pageseg_mode: '6', preserve_interword_spaces: '1', user_defined_dpi: '300' });
+      const boundaries = format.value === 'vierbahnen' ? [0, firstSplit.value, 100] : [0, firstSplit.value, secondSplit.value, 100];
+      const columns = [];
+      for (let i = 0; i < boundaries.length - 1; i++) {
+        status.value = `Spalte ${i + 1} von ${boundaries.length - 1} wird erkannt …`;
+        const left = Math.round(canvas.width * boundaries[i] / 100);
+        const columnWidth = Math.round(canvas.width * boundaries[i + 1] / 100) - left;
+        const result = await worker.recognize(imageData, { rectangle: { left, top: 0, width: columnWidth, height: canvas.height } }, { text: true, tsv: true });
+        if (disposed || request !== generation) return;
+        columns.push(result.data.tsv);
+      }
+      rows.value = parseScanLines(combineScanColumns(...columns), format.value);
     }
-    rows.value = parseScanLines(combineScanColumns(...columns), format.value);
     await nextTick();
     document.getElementById('scan-review-heading')?.scrollIntoView({ block: 'start', behavior: 'smooth' });
   } catch { if (!disposed && request === generation) error.value = 'Erkennung fehlgeschlagen. Bitte erneut versuchen oder einen kleineren Ausschnitt wählen.'; }
@@ -197,24 +223,36 @@ onBeforeUnmount(() => {
         <v-alert v-if="error" type="error" variant="tonal" class="mb-3" role="alert">{{ error }}</v-alert>
         <template v-if="imageUrl">
           <v-select v-model="format" :items="formats" label="Zettelformat" :disabled="busy" hide-details class="mb-3" />
-          <p class="text-body-small mb-2">{{ format === 'vierbahnen' ? 'Eine Bahn markieren: nur die Spalten Wurf und Holz, alle benötigten Zeilen.' : 'Nur die Spalten Wurf, Holz und Zwischensumme markieren. Kegelbild und übrige Spalten weglassen.' }} Zahlen müssen aufrecht stehen. Gestrichelte Linien trennen die Spalten. Bereich im Bild aufziehen oder Regler verwenden.</p>
+          <p class="text-body-small mb-2">{{ horizontal ? 'Nur das Zeilenpaar einer Bahn markieren: 15 Volle oben, 15 Abräumen darunter. Beschriftungen und Summen außerhalb lassen. Die 15 Wurffelder müssen zwischen den senkrechten Hilfslinien liegen.' : format === 'vierbahnen' ? 'Eine Bahn markieren: nur die Spalten Wurf und Holz, alle benötigten Zeilen.' : 'Nur die Spalten Wurf, Holz und Zwischensumme markieren. Kegelbild und übrige Spalten weglassen.' }} Zahlen müssen aufrecht stehen. Hilfslinien müssen zwischen den Feldern liegen. Bereich im Bild aufziehen oder Regler verwenden.</p>
           <div class="scan-preview-wrap">
             <div class="scan-preview" @pointerdown.prevent="startCrop" @pointermove="moveCrop" @pointerup="endCrop" @pointercancel="dragStart = null">
               <img ref="previewImage" :src="imageUrl" alt="Spielzettel zum Auswählen des Tabellenbereichs" draggable="false">
               <div class="scan-crop" :style="cropStyle">
-                <span class="scan-column-line" :style="{ left: `${firstSplit}%` }" />
-                <span v-if="format !== 'vierbahnen'" class="scan-column-line" :style="{ left: `${secondSplit}%` }" />
+                <template v-if="horizontal">
+                  <span v-for="cell in 14" :key="cell" class="scan-column-line" :style="{ left: `${cell / 15 * 100}%` }" />
+                  <span v-for="(boundary, i) in (rowLayout === 'vier' ? rowBoundaries : [halfBoundary])" :key="`row-${i}`" class="scan-horizontal-line" :style="{ top: `${boundary}%` }" />
+                </template>
+                <span v-else class="scan-column-line" :style="{ left: `${firstSplit}%` }" />
+                <span v-if="!horizontal && format !== 'vierbahnen'" class="scan-column-line" :style="{ left: `${secondSplit}%` }" />
               </div>
             </div>
           </div>
           <v-range-slider v-model="cropX" label="Links / rechts" :min="0" :max="100" :step="0.1" :disabled="busy" thumb-label hide-details class="mt-3" />
           <v-range-slider v-model="cropY" label="Oben / unten" :min="0" :max="100" :step="0.1" :disabled="busy" thumb-label hide-details />
+          <template v-if="horizontal">
+            <v-select v-model="rowLayout" label="Zeilenaufbau" :items="[{ title: 'Wurfnummern und Holz (4 Zeilen)', value: 'vier' }, { title: 'Nur Holz (2 Zeilen)', value: 'zwei' }]" :disabled="busy" hide-details class="mt-3" />
+            <p class="text-body-small mt-2">{{ rowLayout === 'vier' ? 'Von oben: Wurfnummern Volle, Holz Volle, Wurfnummern Abräumen, Holz Abräumen.' : 'Von oben: Holz Volle, Holz Abräumen.' }} Horizontale Linien zwischen die Zeilen legen.</p>
+            <template v-if="rowLayout === 'vier'">
+              <v-slider v-for="(_, i) in rowBoundaries" :key="i" v-model="rowBoundaries[i]" :label="`Zeilengrenze ${i + 1}`" :min="i ? rowBoundaries[i - 1] + 3 : 3" :max="i < 2 ? rowBoundaries[i + 1] - 3 : 97" :step="1" :disabled="busy" hide-details />
+            </template>
+            <v-slider v-else v-model="halfBoundary" label="Volle / Abräumen" :min="10" :max="90" :step="1" :disabled="busy" hide-details />
+          </template>
           <v-expansion-panels variant="accordion" class="mt-2">
             <v-expansion-panel title="Spalten und Licht anpassen">
               <v-expansion-panel-text>
-                <p class="text-body-small mb-2">Die gestrichelten Linien müssen zwischen den gedruckten Spalten liegen.</p>
-                <v-slider v-model="firstSplit" label="Wurf / Holz" :min="10" :max="80" :step="1" :disabled="busy" hide-details />
-                <v-slider v-if="format !== 'vierbahnen'" v-model="secondSplit" label="Holz / Summe" :min="firstSplit + 5" :max="95" :step="1" :disabled="busy" hide-details />
+                <p v-if="!horizontal" class="text-body-small mb-2">Die gestrichelten Linien müssen zwischen den gedruckten Spalten liegen.</p>
+                <v-slider v-if="!horizontal" v-model="firstSplit" label="Wurf / Holz" :min="10" :max="80" :step="1" :disabled="busy" hide-details />
+                <v-slider v-if="!horizontal && format !== 'vierbahnen'" v-model="secondSplit" label="Holz / Summe" :min="firstSplit + 5" :max="95" :step="1" :disabled="busy" hide-details />
                 <v-checkbox v-model="flattenShadows" label="Schatten ausgleichen" :disabled="busy || !supportsShadowFilter" hide-details />
               </v-expansion-panel-text>
             </v-expansion-panel>
@@ -228,7 +266,7 @@ onBeforeUnmount(() => {
           <v-alert v-if="!detected" type="warning" variant="tonal" class="mb-3">Keine Wurfpaare erkannt. Ausschnitt und Drehung prüfen. Werte können auch von Hand ergänzt werden.</v-alert>
           <div class="scan-rows">
             <div v-for="(row, index) in rows" :key="row.throw" class="scan-row" :class="{ 'scan-row-warning': row.issues.length }">
-              <label :for="`scan-throw-${row.throw}`">Wurf {{ row.throw }}</label>
+              <label :for="`scan-throw-${row.throw}`">{{ horizontal ? (row.throw <= 15 ? `V ${row.throw}` : `A ${row.throw - 15}`) : `Wurf ${row.throw}` }}</label>
               <input :id="`scan-throw-${row.throw}`" v-model="row.value" type="text" inputmode="numeric" maxlength="1" :aria-label="`Holz für Wurf ${row.throw}`" autocomplete="off">
               <span class="text-body-small">{{ row.issues.join(' · ') || (!row.source ? 'Nicht erkannt' : 'Erkannt') }}<span v-if="index < original.length"> · Bisher {{ original[index] }}</span></span>
             </div>
@@ -254,6 +292,7 @@ onBeforeUnmount(() => {
 .scan-preview img { display: block; max-width: 100%; max-height: 420px; width: auto; height: auto; }
 .scan-crop { position: absolute; border: 2px solid rgb(var(--v-theme-primary)); box-shadow: 0 0 0 2000px rgba(0,0,0,.45); pointer-events: none; }
 .scan-column-line { position: absolute; height: 100%; top: 0; border-left: 2px dashed #f59e0b; }
+.scan-horizontal-line { position: absolute; left: 0; width: 100%; border-top: 2px dashed #f59e0b; }
 .scan-rows { display: grid; gap: 4px; margin-top: 12px; }
 .scan-row { display: grid; grid-template-columns: 64px 48px 1fr; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; }
 .scan-row-warning { background: rgba(245,158,11,.15); }

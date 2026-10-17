@@ -1,6 +1,14 @@
 <script setup>
 const items = [
 	{
+		id: 18,
+		color: "primary",
+		icon: "mdi-table-row",
+		date: "17.10.2026",
+		title: "Version 1.6.1 - Zeilenweise Spielzettel",
+		text: 'Zusätzliches Scanformat für waagerechte Wurfreihen: 15 Volle über 15 Abräumen, wahlweise mit eigenen Wurfnummernzeilen. Ein Bahnblock wird ausgewählt und mit Hilfslinien ausgerichtet. Ergebnisse werden anhand ihrer Position den Würfen 1–30 zugeordnet; fehlende Felder verschieben die folgenden Würfe nicht. Mehrere Ziffern im selben Feld bleiben zur Prüfung leer.',
+	},
+	{
 		id: 17,
 		color: "primary",
 		icon: "mdi-camera-outline",
