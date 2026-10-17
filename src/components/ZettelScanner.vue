@@ -27,6 +27,7 @@ const status = ref('');
 const replace = ref(false);
 const reviewed = ref(false);
 const sourceCanvas = document.createElement('canvas');
+const supportsShadowFilter = 'filter' in sourceCanvas.getContext('2d');
 let worker = null;
 let disposed = false;
 let generation = 0;
@@ -123,7 +124,7 @@ async function recognize() {
     // Normalize slow lighting changes, keeping stroke detail in the greyscale image.
     const pixels = context.getImageData(0, 0, canvas.width, canvas.height);
     let background = null;
-    if (flattenShadows.value) {
+    if (flattenShadows.value && supportsShadowFilter) {
       const blurred = document.createElement('canvas');
       blurred.width = canvas.width; blurred.height = canvas.height;
       const blurContext = blurred.getContext('2d');
@@ -214,7 +215,7 @@ onBeforeUnmount(() => {
                 <p class="text-body-small mb-2">Die gestrichelten Linien müssen zwischen den gedruckten Spalten liegen.</p>
                 <v-slider v-model="firstSplit" label="Wurf / Holz" :min="10" :max="80" :step="1" :disabled="busy" hide-details />
                 <v-slider v-if="format !== 'vierbahnen'" v-model="secondSplit" label="Holz / Summe" :min="firstSplit + 5" :max="95" :step="1" :disabled="busy" hide-details />
-                <v-checkbox v-model="flattenShadows" label="Schatten ausgleichen" :disabled="busy" hide-details />
+                <v-checkbox v-model="flattenShadows" label="Schatten ausgleichen" :disabled="busy || !supportsShadowFilter" hide-details />
               </v-expansion-panel-text>
             </v-expansion-panel>
           </v-expansion-panels>
