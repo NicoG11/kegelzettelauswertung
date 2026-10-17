@@ -3,7 +3,7 @@
 ## ![buildprocess](https://github.com/NicoG11/kegelzettelauswertung/actions/workflows/static.yml/badge.svg?event=push)
 
 # Kegelzettelauswertung
-- aktuelle Version: 1.5.3
+- aktuelle Version: 1.6.0
 - [Demo GithubPage](https://nicog11.github.io/kegelzettelauswertung/)
 
 ## Lokal mit Docker
@@ -68,3 +68,26 @@ immer denselben Eintrag. Beim Laden eines Spieltags kann die Funktion erneut
 aktiviert werden. Ein anderer bereits gespeicherter Spieltag mit gleichem Namen
 und gleicher Saison wird erst nach Bestätigung überschrieben. Beim Löschen des
 aktuellen gespeicherten Spieltags wird das automatische Speichern abgeschaltet.
+
+
+### Zettelscanner
+
+Unter der Eingabe einer Bahn „Zettel scannen“ wählen. Foto aufnehmen oder ein Bild
+auswählen, aufrecht drehen und den Tabellenbereich markieren. Bei Möckel- und
+FUNK-Bons nur Wurfnummer, Holzzahl und laufende Summe markieren, beim
+Vier-Bahnen-Zettel nur Wurf und Holz einer Bahn. OCR läuft lokal im Browser;
+Fotos werden weder hochgeladen noch dauerhaft gespeichert. OCR-Dateien werden
+von derselben Website geladen und vor dev/build aus den festgelegten Paketversionen
+bereitgestellt. Sprachdaten: englisches Tesseract-Modell aus tessdata_fast
+(Apache 2.0, Lizenz unter public/ocr/lang/LICENSE).
+
+Erkannte Würfe vor der Übernahme prüfen und gegebenenfalls korrigieren. Leere
+Würfe werden nicht zu Null. Lücken vor späteren Würfen müssen ergänzt werden.
+Bestehende Werte bleiben erhalten; Abweichungen erfordern eine ausdrückliche
+Ersetzen-Bestätigung. Der Scanner ist eine erste Fotoimport-Version; laufender
+Videoscan, automatische Perspektivkorrektur und gemeinsamer Vier-Bahnen-Import
+sind noch nicht enthalten. Erkennungsqualität hängt von Schärfe, Licht und Ausschnitt ab.
+
+Blasse Bonfotos und ungewohnte Druckschriften können viele manuelle Korrekturen
+erfordern. Die Erkennung ist ein Vorschlag und ersetzt den Abgleich mit dem Foto nicht.
+Gestrichelte Spaltengrenzen lassen sich unter „Spalten und Licht anpassen“ verschieben.

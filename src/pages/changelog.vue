@@ -1,6 +1,14 @@
 <script setup>
 const items = [
 	{
+		id: 17,
+		color: "primary",
+		icon: "mdi-camera-outline",
+		date: "17.10.2026",
+		title: "Version 1.6.0 - Zettelscanner",
+		text: 'Erste Version der zusätzlichen Eingabe per Foto oder Bildauswahl mit lokaler Texterkennung. Bilder lassen sich drehen und auf den Tabellenbereich zuschneiden. Unterstützung für FUNK- und Möckel-Bons sowie einzelne Bahnen eines Vier-Bahnen-Zettels. Erkannte Würfe werden nach Wurfnummer zur Prüfung angezeigt; fehlende Werte bleiben leer und widersprüchliche Zwischensummen werden markiert. Vorhandene Würfe werden nur nach ausdrücklicher Bestätigung ersetzt. Fotos werden nicht gespeichert oder hochgeladen.',
+	},
+	{
 		id: 16,
 		color: "primary",
 		icon: "mdi-microphone",
