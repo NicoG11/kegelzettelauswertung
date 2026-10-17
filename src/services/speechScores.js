@@ -6,3 +6,14 @@ export function addSpokenScore(store, lane, number) {
   store.addScore(lane, number);
   return 'added';
 }
+
+// Unknown speech stays unknown; ordinary words must not become bowling scores.
+const spokenNumbers = { null: 0, fehler: 0, ein: 1, eins: 1, eine: 1,
+  zwei: 2, zwo: 2, drei: 3, vier: 4, fünf: 5, sechs: 6, sieben: 7, acht: 8, neun: 9 };
+export const speechGrammar = [...Object.keys(spokenNumbers), '[unk]'];
+export function parseSpokenScores(text = '') {
+  return (text.toLowerCase().match(/[\p{L}]+|\d+/gu) || []).flatMap(word => {
+    if (/^[0-9]$/.test(word)) return [Number(word)];
+    return Object.hasOwn(spokenNumbers, word) ? [spokenNumbers[word]] : [];
+  });
+}
