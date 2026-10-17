@@ -1,6 +1,14 @@
 <script setup>
 const items = [
 	{
+		id: 16,
+		color: "primary",
+		icon: "mdi-microphone",
+		date: "17.10.2026",
+		title: "Version 1.5.3 - Spracheingabe verbessert",
+		text: 'Laufende Zahlenvorschau und Mikrofonpegel während der Aufnahme. Automatische Mikrofonverstärkung und ein zusätzlicher Verstärkungsregler unterstützen leise Eingaben. Die Erkennung verwendet die tatsächliche Abtastrate des Mikrofons und einen auf Zahlen begrenzten Wortschatz. Zwischenergebnisse bleiben Vorschau; erst abgeschlossene Ergebnisse werden eingetragen, damit wiederholte Vorschauen keine doppelten Würfe erzeugen.',
+	},
+	{
 		id: 15,
 		color: "primary",
 		icon: "mdi-microphone-check",

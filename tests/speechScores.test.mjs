@@ -30,3 +30,12 @@ test('missing lane/player and invalid numbers do not change scores', () => {
   assert.deepEqual(state.selectedPlayer.bahnen[1], []);
   assert.equal(addSpokenScore({ selectedPlayer: null }, 1, 9), 'no-player');
 });
+
+test('spoken numbers preserve repeated throws and ignore unrelated words', async () => {
+  const { parseSpokenScores } = await import('../src/services/speechScores.js');
+  assert.deepEqual(parseSpokenScores('acht acht sieben null 0 neun'), [8, 8, 7, 0, 0, 9]);
+  assert.deepEqual(parseSpokenScores('hier für sie nein [unk] 12'), []);
+  assert.deepEqual(parseSpokenScores('Eins, ZWO! fünf.'), [1, 2, 5]);
+  // Partial hypotheses replace the preview, they are never accumulated as throws.
+  assert.deepEqual(parseSpokenScores('acht sieben'), [8, 7]);
+});

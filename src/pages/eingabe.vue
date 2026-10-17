@@ -11,13 +11,16 @@ import { useSpielerStore } from "@/stores/spielerStore";
 import { computed, onMounted, onUnmounted, ref, watch, nextTick, reactive } from "vue";
 import { useRouter } from "vue-router";
 import { createModel } from 'vosk-browser';
-import { addSpokenScore } from '@/services/speechScores';
+import { parseSpokenScores, speechGrammar, addSpokenScore } from '@/services/speechScores';
 
 
 
 const isRecording = ref(false);
 const isStartingRecognition = ref(false);
 const speechLane = ref(null);
+const speechPreview = ref('');
+const microphoneLevel = ref(0);
+const microphoneGain = ref(2);
 let recognitionRequest = 0;
 let disposed = false;
 
@@ -59,12 +62,16 @@ const startRecognition = async (lane) => {
 		if (request !== recognitionRequest) return;
 
 
-		const sampleRate = 48000;
+		audioContext = new (window.AudioContext || window.webkitAudioContext)();
+		await audioContext.resume();
+		if (request !== recognitionRequest || disposed) return;
+		const sampleRate = audioContext.sampleRate;
+		speechPreview.value = '';
 
 		snackbar.message = 'Erstelle Recognizer...';
 		snackbar.visible = true;
 		// Erstelle einen Recognizer
-		recognizer = new loadedModel.KaldiRecognizer(sampleRate);
+		recognizer = new loadedModel.KaldiRecognizer(sampleRate, JSON.stringify(speechGrammar));
 
 
 		// Überprüfe, ob der Recognizer erstellt wurde
@@ -82,11 +89,12 @@ const startRecognition = async (lane) => {
 
 		recognizer.on('result', (message) => {
 			if (request !== recognitionRequest || recognizer !== activeRecognizer || spielerStore.selectedPlayer?.id !== playerId) return;
+			speechPreview.value = '';
 			processResult(message.result.text, lane);
 		});
 		recognizer.on('partialresult', (message) => {
-			console.log(`Partial result: ${message.result.partial}`);
-			// processResult(message.result.partial);
+			if (request !== recognitionRequest || recognizer !== activeRecognizer || spielerStore.selectedPlayer?.id !== playerId) return;
+			speechPreview.value = parseSpokenScores(message.result.partial).join(' · ');
 		});
 
 		recognizer.on('error', (message) => {
@@ -104,6 +112,7 @@ const startRecognition = async (lane) => {
 			audio: {
 				echoCancellation: true,
 				noiseSuppression: true,
+				autoGainControl: true,
 			},
 		});
 
@@ -114,22 +123,28 @@ const startRecognition = async (lane) => {
 		mediaStream = stream;
 
 		// Erstelle einen Audio-Kontext
-		audioContext = new (window.AudioContext || window.webkitAudioContext)();
 		const source = audioContext.createMediaStreamSource(mediaStream);
 
 		// Verwende ScriptProcessorNode (falls AudioWorkletNode nicht verfügbar)
 		recognizerNode = audioContext.createScriptProcessor(4096, 1, 1);
 
 		recognizerNode.onaudioprocess = (event) => {
-			// Übergib das AudioBuffer-Objekt direkt
-			if (request === recognitionRequest && recognizer === activeRecognizer) activeRecognizer.acceptWaveform(event.inputBuffer);
+			if (request !== recognitionRequest || recognizer !== activeRecognizer) return;
+			const samples = event.inputBuffer.getChannelData(0);
+			let energy = 0;
+			for (let i = 0; i < samples.length; i++) {
+				samples[i] = Math.max(-1, Math.min(1, samples[i] * microphoneGain.value));
+				energy += samples[i] * samples[i];
+			}
+			microphoneLevel.value = Math.min(100, Math.sqrt(energy / samples.length) * 500);
+			activeRecognizer.acceptWaveform(event.inputBuffer);
 		};
 
 		source.connect(recognizerNode);
 		recognizerNode.connect(audioContext.destination);
 
 		isRecording.value = true;
-		snackbar.message = 'Spracherkennung erfolgreich gestartet. Bitte sprechen Sie die Zahlen deutlich aus. Und machen Sie dazischen eine kleine Pause.';
+		snackbar.message = 'Aufnahme läuft. Zahlen werden nach einer kurzen Sprechpause übernommen.';
 		snackbar.visible = true;
 	} catch (error) {
 		if (request !== recognitionRequest || disposed) return;
@@ -148,6 +163,8 @@ const stopRecognition = () => {
 	recognitionRequest++;
 	isStartingRecognition.value = false;
 	speechLane.value = null;
+	speechPreview.value = '';
+	microphoneLevel.value = 0;
 	try {
 		if (recognizerNode) {
 			recognizerNode.disconnect();
@@ -199,60 +216,11 @@ const processResult = (text, lane) => {
 
 
 
-const numberMap = {
-	'zero': 0,
-	'nücht': 0,
-	'null': 0,
-	'ull': 0,
-	'fehler': 0,
-	'ein': 1,
-	'eins': 1,
-	'eine': 1,
-	'zwei': 2,
-	'zwo': 2,
-	'drei': 3,
-	'brei': 3,
-	'vier': 4,
-	'schier': 4,
-	'fier': 4,
-	'für': 4,
-	'hier': 4,
-	'share': 4,
-	'cher': 4,
-	'viel': 4,
-	'fünf': 5,
-	'funf': 5,
-	'sechs': 6,
-	'sex': 6,
-	'sieben': 7,
-	'sieb': 7,
-	'sie': 7,
-	'sie wollen': 7,
-	'zielen': 7,
-	'siegeln': 7,
-	'zählen': 7,
-	'acht': 8,
-	'ach': 8,
-	'neun': 9,
-	'neuen': 9,
-	'neu': 9,
-	'nein': 9,
-	'alle': 9,
-	// Weitere Zahlen hinzufügen
-};
-
 const processSpeechResult = (text, lane) => {
-	const words = text.toLowerCase().split(' ');
-	words.forEach((word) => {
-		if (!isRecording.value) return;
-		console.log('Erkanntes Wort:', word);
-		const number = numberMap[word];
-		if (number !== undefined) {
-			console.log('Erkannte Zahl:', number);
-			// Füge die Zahl in deine Anwendung ein
-			addNumberToLaneScore(number, lane);
-		}
-	});
+	for (const number of parseSpokenScores(text)) {
+		if (!isRecording.value) break;
+		addNumberToLaneScore(number, lane);
+	}
 };
 
 
@@ -492,6 +460,13 @@ function addNumberToLaneScore(number, lane) {
 												{{ isRecording ? 'Aufnahme stoppen' : 'Spracheingabe' }}</v-btn>
 											<v-btn variant="text" color="error" :disabled="!spielerStore.selectedPlayer?.bahnen[n].length"
 												@click="spielerStore.clearLane(n)">Bahn {{ n }} löschen</v-btn>
+										</div>
+										<div v-if="isRecording && speechLane === n" class="mt-3" role="status" aria-live="polite">
+											<div class="text-body-small">Mikrofonpegel</div>
+											<v-progress-linear :model-value="microphoneLevel" color="primary" height="6" rounded class="my-2" aria-label="Mikrofonpegel" />
+											<v-slider v-model="microphoneGain" :min="1" :max="5" :step="0.5" label="Verstärkung" thumb-label hide-details />
+											<div class="text-body-small mt-2">Vorschau: {{ speechPreview || '…' }}</div>
+											<div class="text-body-small text-medium-emphasis">Übernahme nach kurzer Sprechpause.</div>
 										</div>
 									</v-col>
 									<v-col cols="5" class="px-0">
